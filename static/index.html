@@ -1,0 +1,164 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>SAP Viewer</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      padding: 20px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      padding: 10px 16px;
+      border-radius: 6px;
+      background: #e5e7eb;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+    }
+
+    .section {
+      display: none;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border-left: 6px solid #2563eb;
+    }
+
+    .card.entregue {
+      border-left-color: #16a34a;
+    }
+
+    .title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .row {
+      margin-bottom: 6px;
+      font-size: 14px;
+    }
+
+    .icon {
+      margin-right: 6px;
+    }
+
+    .group-title {
+      font-size: 18px;
+      margin: 15px 0 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>SAP Viewer — Reservas & Compras</h1>
+
+  <div class="tabs">
+    <div class="tab active" data-target="reservas">Reservas</div>
+    <div class="tab" data-target="compras">Compras</div>
+  </div>
+
+  <!-- Reservas -->
+  <div id="reservas" class="section active">
+    <div class="group-title">Em Dia</div>
+    <div id="res-em-dia" class="cards"></div>
+
+    <div class="group-title">Entregue</div>
+    <div id="res-entregue" class="cards"></div>
+  </div>
+
+  <!-- Compras -->
+  <div id="compras" class="section">
+    <div class="group-title">Em Dia</div>
+    <div id="req-em-dia" class="cards"></div>
+
+    <div class="group-title">Entregue</div>
+    <div id="req-entregue" class="cards"></div>
+  </div>
+
+<script>
+function $(s){ return document.querySelector(s); }
+function $all(s){ return [...document.querySelectorAll(s)]; }
+
+$all(".tab").forEach(t=>{
+  t.onclick = () => {
+    $all(".tab").forEach(x=>x.classList.remove("active"));
+    t.classList.add("active");
+
+    $all(".section").forEach(x=>x.classList.remove("active"));
+    $("#" + t.dataset.target).classList.add("active");
+  }
+});
+
+function makeCard(item, entregue=false){
+  return `
+  <div class="card ${entregue ? "entregue" : ""}">
+    <div class="title">🧩 ${item.descricao}</div>
+
+    <div class="row"><span class="icon">📦</span> Material: ${item.material}</div>
+    <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
+
+    ${item.dataNec ? `
+    <div class="row"><span class="icon">📅</span> Data NEC: ${item.dataNec}</div>
+    ` : `
+    <div class="row"><span class="icon">📅</span> Data REM: ${item.dataRem}</div>
+    `}
+
+    ${item.usuario ? `
+    <div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>
+    ` : ""}
+
+    ${item.reserva ? `
+    <div class="row"><span class="icon">🧾</span> Reserva: ${item.reserva}</div>
+    ` : ""}
+  </div>
+  `;
+}
+
+async function carregar(){
+  const resv = await fetch("/api/reservas").then(r=>r.json());
+  const reqc = await fetch("/api/requisicoes").then(r=>r.json());
+
+  $("#res-em-dia").innerHTML = resv.em_dia.map(x=>makeCard(x,false)).join("");
+  $("#res-entregue").innerHTML = resv.entregue.map(x=>makeCard(x,true)).join("");
+
+  $("#req-em-dia").innerHTML = reqc.em_dia.map(x=>makeCard(x,false)).join("");
+  $("#req-entregue").innerHTML = reqc.entregue.map(x=>makeCard(x,true)).join("");
+}
+
+setInterval(carregar, 5000);
+carregar();
+</script>
+
+</body>
+</html>
