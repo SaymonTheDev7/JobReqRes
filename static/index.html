@@ -38,10 +38,26 @@
       display: block;
     }
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 16px;
+    /* 3 colunas lado a lado */
+    .container-3colunas {
+      display: flex;
+      gap: 20px;
+    }
+
+    .coluna {
+      flex: 1;
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .scroll-coluna {
+      overflow-y: auto;
+      height: 80vh;
+      padding-right: 10px;
     }
 
     .card {
@@ -50,10 +66,15 @@
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       border-left: 6px solid #2563eb;
+      margin-bottom: 15px;
     }
 
     .card.entregue {
       border-left-color: #16a34a;
+    }
+
+    .card.atraso {
+      border-left-color: #dc2626;
     }
 
     .title {
@@ -71,40 +92,92 @@
       margin-right: 6px;
     }
 
-    .group-title {
+    h2 {
       font-size: 18px;
-      margin: 15px 0 10px;
-      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .pergunta {
+      margin-top: 10px;
+      background: #f0f0f0;
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .btn {
+      padding: 6px 10px;
+      border: none;
+      color: white;
+      margin: 5px;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .btn-sim {
+      background: #16a34a;
+    }
+
+    .btn-nao {
+      background: #dc2626;
     }
   </style>
 </head>
 
 <body>
 
-  <h1>SAP Viewer — Reservas & Compras</h1>
+<h1>SAP Viewer — Reservas & Compras</h1>
 
-  <div class="tabs">
-    <div class="tab active" data-target="reservas">Reservas</div>
-    <div class="tab" data-target="compras">Compras</div>
+<div class="tabs">
+  <div class="tab active" data-target="reservas">Reservas</div>
+  <div class="tab" data-target="compras">Compras</div>
+</div>
+
+<!-- RESERVAS -->
+<div id="reservas" class="section active">
+  <div class="container-3colunas">
+
+    <div class="coluna">
+      <h2>Em Dia</h2>
+      <div id="res-em-dia" class="scroll-coluna"></div>
+    </div>
+
+    <div class="coluna">
+      <h2>Entregue</h2>
+      <div id="res-entregue" class="scroll-coluna"></div>
+    </div>
+
+    <div class="coluna">
+      <h2>Em Atraso</h2>
+      <div id="res-atraso" class="scroll-coluna"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- COMPRAS -->
+<div id="compras" class="section">
+
+  <div class="container-3colunas">
+
+    <div class="coluna">
+      <h2>Em Dia</h2>
+      <div id="req-em-dia" class="scroll-coluna"></div>
+    </div>
+
+    <div class="coluna">
+      <h2>Entregue</h2>
+      <div id="req-entregue" class="scroll-coluna"></div>
+    </div>
+
+    <div class="coluna">
+      <h2>Em Atraso</h2>
+      <div id="req-atraso" class="scroll-coluna"></div>
+    </div>
+
   </div>
 
-  <!-- Reservas -->
-  <div id="reservas" class="section active">
-    <div class="group-title">Em Dia</div>
-    <div id="res-em-dia" class="cards"></div>
-
-    <div class="group-title">Entregue</div>
-    <div id="res-entregue" class="cards"></div>
-  </div>
-
-  <!-- Compras -->
-  <div id="compras" class="section">
-    <div class="group-title">Em Dia</div>
-    <div id="req-em-dia" class="cards"></div>
-
-    <div class="group-title">Entregue</div>
-    <div id="req-entregue" class="cards"></div>
-  </div>
+</div>
 
 <script>
 function $(s){ return document.querySelector(s); }
@@ -120,19 +193,42 @@ $all(".tab").forEach(t=>{
   }
 });
 
-function makeCard(item, entregue=false){
+function hojeISO(){
+  const d = new Date();
+  return d.toISOString().split("T")[0];
+}
+
+async function confirmar(id, tipo, chegou){
+  await fetch("/api/confirmar", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ id, tipo, chegou })
+  });
+  carregar();
+}
+
+function makeCard(item){
+  let statusClass = item.status || "";
+  let pergunta = "";
+
+  if (item.dataChegadaISO === hojeISO() && !statusClass){
+    pergunta = `
+      <div class="pergunta">
+        Esse material chegou?<br>
+        <button class="btn btn-sim" onclick="confirmar('${item.id}','${item.tipo}',true)">SIM</button>
+        <button class="btn btn-nao" onclick="confirmar('${item.id}','${item.tipo}',false)">NÃO</button>
+      </div>
+    `;
+  }
+
   return `
-  <div class="card ${entregue ? "entregue" : ""}">
+  <div class="card ${statusClass}">
     <div class="title">🧩 ${item.descricao}</div>
 
-    <div class="row"><span class="icon">📦</span> Material: ${item.material}</div>
+    <div class="row"><span class="icon">📦</span> Requisição: ${item.material}</div>
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
 
-    ${item.dataNec ? `
-    <div class="row"><span class="icon">📅</span> Data NEC: ${item.dataNec}</div>
-    ` : `
-    <div class="row"><span class="icon">📅</span> Data REM: ${item.dataRem}</div>
-    `}
+    <div class="row"><span class="icon">📅</span> Data de Chegada: ${item.dataChegada}</div>
 
     ${item.usuario ? `
     <div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>
@@ -141,22 +237,45 @@ function makeCard(item, entregue=false){
     ${item.reserva ? `
     <div class="row"><span class="icon">🧾</span> Reserva: ${item.reserva}</div>
     ` : ""}
+
+    ${pergunta}
   </div>
   `;
+}
+
+function ativarScroll(div, lista){
+  div.innerHTML = "";
+  let index = 0;
+  const chunk = 20;
+
+  function loadMore(){
+    const fatia = lista.slice(index, index + chunk);
+    div.innerHTML += fatia.map(makeCard).join("");
+    index += chunk;
+  }
+
+  loadMore();
+
+  div.onscroll = () => {
+    if(div.scrollTop + div.clientHeight >= div.scrollHeight - 5){
+      loadMore();
+    }
+  };
 }
 
 async function carregar(){
   const resv = await fetch("/api/reservas").then(r=>r.json());
   const reqc = await fetch("/api/requisicoes").then(r=>r.json());
 
-  $("#res-em-dia").innerHTML = resv.em_dia.map(x=>makeCard(x,false)).join("");
-  $("#res-entregue").innerHTML = resv.entregue.map(x=>makeCard(x,true)).join("");
+  ativarScroll($("#res-em-dia"), resv.em_dia);
+  ativarScroll($("#res-entregue"), resv.entregue);
+  ativarScroll($("#res-atraso"), resv.atraso);
 
-  $("#req-em-dia").innerHTML = reqc.em_dia.map(x=>makeCard(x,false)).join("");
-  $("#req-entregue").innerHTML = reqc.entregue.map(x=>makeCard(x,true)).join("");
+  ativarScroll($("#req-em-dia"), reqc.em_dia);
+  ativarScroll($("#req-entregue"), reqc.entregue);
+  ativarScroll($("#req-atraso"), reqc.atraso);
 }
 
-setInterval(carregar, 5000);
 carregar();
 </script>
 
