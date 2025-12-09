@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f3f4f6;
+      background: linear-gradient(to bottom right, #eef1f7, #dfe3eb);
       padding: 20px;
     }
 
@@ -22,23 +22,21 @@
       border-radius: 6px;
       background: #e5e7eb;
       cursor: pointer;
+      transition: 0.2s;
     }
+
+    .tab:hover { background: #d4d7dd; }
 
     .tab.active {
       background: #2563eb;
       color: white;
       font-weight: bold;
+      transform: translateY(-2px);
     }
 
-    .section {
-      display: none;
-    }
+    .section { display: none; }
+    .section.active { display: block; }
 
-    .section.active {
-      display: block;
-    }
-
-    /* 3 colunas lado a lado */
     .container-3colunas {
       display: flex;
       gap: 20px;
@@ -62,65 +60,56 @@
 
     .card {
       background: white;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 18px;
+      border-radius: 14px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
       border-left: 6px solid #2563eb;
-      margin-bottom: 15px;
+      margin-bottom: 18px;
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
-    .card.entregue {
-      border-left-color: #16a34a;
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
     }
 
-    .card.atraso {
-      border-left-color: #dc2626;
+    .card.slide-out {
+      transform: translateX(120%);
+      opacity: 0;
     }
 
     .title {
-      font-size: 16px;
+      font-size: 17px;
       font-weight: bold;
-      margin-bottom: 8px;
-    }
-
-    .row {
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-
-    .icon {
-      margin-right: 6px;
-    }
-
-    h2 {
-      font-size: 18px;
       margin-bottom: 10px;
     }
 
+    .row { margin-bottom: 8px; font-size: 15px; }
+    .icon { margin-right: 6px; }
+
     .pergunta {
       margin-top: 10px;
-      background: #f0f0f0;
-      padding: 8px;
+      background: #f8f8f8;
+      padding: 10px;
       border-radius: 8px;
       text-align: center;
+      border: 1px solid #ddd;
     }
 
     .btn {
-      padding: 6px 10px;
+      padding: 7px 12px;
       border: none;
       color: white;
       margin: 5px;
       cursor: pointer;
-      border-radius: 6px;
+      border-radius: 8px;
+      font-weight: bold;
+      transition: 0.15s;
     }
 
-    .btn-sim {
-      background: #16a34a;
-    }
-
-    .btn-nao {
-      background: #dc2626;
-    }
+    .btn-sim { background: #16a34a; }
+    .btn-nao { background: #dc2626; }
+    .btn:hover { opacity: 0.8; }
   </style>
 </head>
 
@@ -136,47 +125,19 @@
 <!-- RESERVAS -->
 <div id="reservas" class="section active">
   <div class="container-3colunas">
-
-    <div class="coluna">
-      <h2>Em Dia</h2>
-      <div id="res-em-dia" class="scroll-coluna"></div>
-    </div>
-
-    <div class="coluna">
-      <h2>Entregue</h2>
-      <div id="res-entregue" class="scroll-coluna"></div>
-    </div>
-
-    <div class="coluna">
-      <h2>Em Atraso</h2>
-      <div id="res-atraso" class="scroll-coluna"></div>
-    </div>
-
+    <div class="coluna"><h2>Em Dia</h2><div id="res-em-dia" class="scroll-coluna"></div></div>
+    <div class="coluna"><h2>Entregue</h2><div id="res-entregue" class="scroll-coluna"></div></div>
+    <div class="coluna"><h2>Em Atraso</h2><div id="res-atraso" class="scroll-coluna"></div></div>
   </div>
 </div>
 
 <!-- COMPRAS -->
 <div id="compras" class="section">
-
   <div class="container-3colunas">
-
-    <div class="coluna">
-      <h2>Em Dia</h2>
-      <div id="req-em-dia" class="scroll-coluna"></div>
-    </div>
-
-    <div class="coluna">
-      <h2>Entregue</h2>
-      <div id="req-entregue" class="scroll-coluna"></div>
-    </div>
-
-    <div class="coluna">
-      <h2>Em Atraso</h2>
-      <div id="req-atraso" class="scroll-coluna"></div>
-    </div>
-
+    <div class="coluna"><h2>Em Dia</h2><div id="req-em-dia" class="scroll-coluna"></div></div>
+    <div class="coluna"><h2>Entregue</h2><div id="req-entregue" class="scroll-coluna"></div></div>
+    <div class="coluna"><h2>Em Atraso</h2><div id="req-atraso" class="scroll-coluna"></div></div>
   </div>
-
 </div>
 
 <script>
@@ -198,49 +159,59 @@ function hojeISO(){
   return d.toISOString().split("T")[0];
 }
 
-async function confirmar(id, tipo, chegou){
-  await fetch("/api/confirmar", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({ id, tipo, chegou })
-  });
-  carregar();
+async function confirmar(id, chegou, card){
+  card.classList.add("slide-out");
+
+  setTimeout(async () => {
+    await fetch("/api/confirmar", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ id, chegou })
+    });
+    carregar();
+  }, 250);
 }
 
 function makeCard(item){
-  let statusClass = item.status || "";
+  let estaEntregue = item.lista === "entregue";
+
+  let devePerguntar =
+    item.dataChegadaISO === hojeISO() &&
+    !item.confirmado &&
+    !estaEntregue;
+
   let pergunta = "";
 
-  if (item.dataChegadaISO === hojeISO() && !statusClass){
+  if (devePerguntar){
     pergunta = `
       <div class="pergunta">
         Esse material chegou?<br>
-        <button class="btn btn-sim" onclick="confirmar('${item.id}','${item.tipo}',true)">SIM</button>
-        <button class="btn btn-nao" onclick="confirmar('${item.id}','${item.tipo}',false)">NÃO</button>
+        <button class="btn btn-sim" onclick="confirmar('${item.id}',true, this.closest('.card'))">SIM</button>
+        <button class="btn btn-nao" onclick="confirmar('${item.id}',false, this.closest('.card'))">NÃO</button>
       </div>
     `;
   }
 
   return `
-  <div class="card ${statusClass}">
+  <div class="card">
     <div class="title">🧩 ${item.descricao}</div>
 
-    <div class="row"><span class="icon">📦</span> Requisição: ${item.material}</div>
+    <div class="row"><span class="icon">📦</span>
+      ${item.tipo === "reserva" ? "Reserva" : "Requisição"}: ${item.reserva || item.reqc}
+    </div>
+
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
 
-    <div class="row"><span class="icon">📅</span> Data de Chegada: ${item.dataChegada}</div>
+    <div class="row"><span class="icon">📅</span>
+      Data de Chegada: <b>${item.dataChegada}</b>
+    </div>
 
     ${item.usuario ? `
-    <div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>
-    ` : ""}
-
-    ${item.reserva ? `
-    <div class="row"><span class="icon">🧾</span> Reserva: ${item.reserva}</div>
+      <div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>
     ` : ""}
 
     ${pergunta}
-  </div>
-  `;
+  </div>`;
 }
 
 function ativarScroll(div, lista){
@@ -267,6 +238,17 @@ async function carregar(){
   const resv = await fetch("/api/reservas").then(r=>r.json());
   const reqc = await fetch("/api/requisicoes").then(r=>r.json());
 
+  resv.entregue.sort((a,b)=> (b.dataChegadaISO || "").localeCompare(a.dataChegadaISO || ""));
+  reqc.entregue.sort((a,b)=> (b.dataChegadaISO || "").localeCompare(a.dataChegadaISO || ""));
+
+  resv.em_dia.forEach(x=>x.lista="em_dia");
+  resv.entregue.forEach(x=>x.lista="entregue");
+  resv.atraso.forEach(x=>x.lista="atraso");
+
+  reqc.em_dia.forEach(x=>x.lista="em_dia");
+  reqc.entregue.forEach(x=>x.lista="entregue");
+  reqc.atraso.forEach(x=>x.lista="atraso");
+
   ativarScroll($("#res-em-dia"), resv.em_dia);
   ativarScroll($("#res-entregue"), resv.entregue);
   ativarScroll($("#res-atraso"), resv.atraso);
@@ -278,6 +260,5 @@ async function carregar(){
 
 carregar();
 </script>
-
 </body>
 </html>

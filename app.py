@@ -1,8 +1,8 @@
-# app.py — versão FINAL com dataChegada + atraso + watcher corrigido
 import os
 import re
 import time
 import uuid
+import json
 from datetime import datetime, date
 from threading import Thread
 from flask import Flask, jsonify, send_from_directory, request
@@ -14,23 +14,42 @@ PASTA_RESERVAS = r"Q:\APPS\SAP\EP0\Job_Reservas"
 PASTA_REQUISICOES = r"Q:\APPS\SAP\EP0\Job_Requisicao"
 # --------------------------------------
 
+CONFIRMADOS_FILE = "confirmados.json"
+
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
-# Regex para DD.MM.AAAA
 DATE_RE = re.compile(r'\b(\d{1,2}\.\d{1,2}\.\d{4})\b')
 
 
 # ----------------------------------------------------
-# FUNÇÕES AUXILIARES
+# JSON PERSISTÊNCIA
 # ----------------------------------------------------
+def salvar_confirmados():
+    try:
+        with open(CONFIRMADOS_FILE, "w") as f:
+            json.dump(CACHE["confirmados"], f)
+    except Exception as e:
+        print("Erro salvando confirmados:", e)
 
-def is_separator(line: str):
-    return line.count('-') > 20 or line.strip() == ''
+
+def carregar_confirmados():
+    if os.path.exists(CONFIRMADOS_FILE):
+        try:
+            with open(CONFIRMADOS_FILE, "r") as f:
+                CACHE["confirmados"] = json.load(f)
+        except Exception as e:
+            print("Erro carregando confirmados:", e)
 
 
+# ----------------------------------------------------
+# AUX
+# ----------------------------------------------------
 def split_cols(line: str):
-    parts = [p.strip() for p in line.split('|')]
-    return [p for p in parts if p != ""]
+    parts = line.split("|")
+    if len(parts) < 2:
+        return []
+    trimmed = [p.strip() for p in parts]
+    return trimmed[1:-1]
 
 
 def parse_date_str(s: str):
@@ -46,27 +65,47 @@ def parse_date_str(s: str):
 
 
 # ----------------------------------------------------
-# PARSER — RESERVAS
+# PARSER RESERVAS
 # ----------------------------------------------------
-
 def parse_reservas_file(path: str):
     cards = []
 
     try:
-        with open(path, 'r', encoding='latin-1', errors='ignore') as f:
+        with open(path, "r", encoding="latin-1", errors="ignore") as f:
             lines = f.readlines()
     except:
         return cards
 
     for raw in lines:
-        if '|' not in raw or is_separator(raw):
+        texto = raw.rstrip("\n")
+
+        if not texto.startswith("|"):
+            continue
+        if "Ordem" in texto or "Material" in texto:
+            continue
+        if "---" in texto:
             continue
 
-        cols = split_cols(raw)
-        if len(cols) < 13:
+        cols = split_cols(texto)
+
+        if not cols:
             continue
 
-        ordem, dataNec, material, descricao, quantidade, um, usuario, cc, centro, reserva, umb, recebedor, item = cols[:13]
+        while len(cols) < 13:
+            cols.append("")
+
+        ordem = cols[0]
+        dataNec = cols[1]
+        material = cols[2]
+        descricao = cols[3]
+        quantidade = cols[4]
+        unidade = cols[5]
+        usuario = cols[6]
+        reserva = cols[9]
+        recebedor = cols[11]
+
+        if not material and not descricao:
+            continue
 
         d = parse_date_str(dataNec)
 
@@ -78,50 +117,76 @@ def parse_reservas_file(path: str):
             "material": material,
             "descricao": descricao,
             "quantidade": quantidade,
+            "um": unidade,
             "usuario": usuario,
             "reserva": reserva,
+            "recebedor": recebedor,
 
-            # padronização
             "dataChegada": dataNec.strip(),
             "dataChegadaISO": d.isoformat() if d else None,
 
-            "raw": raw.strip()
+            "confirmado": False,
+            "lista": ""
         })
 
-    cards.sort(key=lambda c: c.get("dataChegadaISO") or "0000-00-00", reverse=True)
-    return cards[:200]
+    return cards
 
 
 # ----------------------------------------------------
-# PARSER — REQUISIÇÕES ME5A
+# PARSER REQUISIÇÕES
 # ----------------------------------------------------
-
 def parse_requisicoes_file(path: str):
     cards = []
-
     try:
-        with open(path, 'r', encoding='latin-1', errors='ignore') as f:
+        with open(path, "r", encoding="latin-1", errors="ignore") as f:
             lines = f.readlines()
     except:
         return cards
 
+    def is_probable_user(s: str):
+        if not s:
+            return False
+        if DATE_RE.search(s):
+            return False
+        if re.search(r"[A-Za-zÀ-ú]", s):
+            return len(s) <= 80
+        return False
+
     for raw in lines:
-        if '|' not in raw or is_separator(raw):
+        texto = raw.rstrip("\n")
+
+        if not texto.strip():
+            continue
+        if "Texto breve" in texto:
+            continue
+        if "---" in texto:
+            continue
+        if "|" not in texto:
+            continue
+        if texto.count("|") < 6:
             continue
 
-        cols = split_cols(raw)
-        if len(cols) < 13:
-            continue
+        cols = split_cols(texto)
 
-        pedido = cols[0]
-        reqc = cols[1]
-        material = cols[2]
-        descricao = cols[3]
-        quantidade = cols[4]
-        usuario = cols[5]
-        fornecedor = cols[8]
-        dataSolic = cols[9]
-        dataRem = cols[11]
+        while len(cols) < 12:
+            cols.append("")
+
+        reqc = cols[0]
+        dataSolic = cols[1]
+        dataRem = cols[2]
+        mat = cols[3]
+        desc = cols[4]
+        quant = cols[5]
+        um = cols[6]
+        pedido = cols[7]
+
+        usuario = ""
+        for i in [8, 7, 5, 9, 10]:
+            if len(cols) > i and is_probable_user(cols[i]):
+                usuario = cols[i]
+                break
+        if not usuario:
+            usuario = cols[8] if len(cols) > 8 else ""
 
         d = parse_date_str(dataRem)
 
@@ -129,30 +194,28 @@ def parse_requisicoes_file(path: str):
             "id": str(uuid.uuid4()),
             "tipo": "requisicao",
 
-            "pedido": pedido,
             "reqc": reqc,
-            "material": reqc,
-            "descricao": descricao,
-            "quantidade": quantidade,
+            "material": mat,
+            "descricao": desc,
+            "quantidade": quant,
+            "um": um,
             "usuario": usuario,
-            "fornecedor": fornecedor,
-            "dataSolic": dataSolic,
+            "pedido": pedido,
 
-            # padronização:
+            "dataSolic": dataSolic,
             "dataChegada": dataRem.strip(),
             "dataChegadaISO": d.isoformat() if d else None,
 
-            "raw": raw.strip()
+            "confirmado": False,
+            "lista": ""
         })
 
-    cards.sort(key=lambda c: c.get("dataChegadaISO") or "0000-00-00", reverse=True)
-    return cards[:300]
+    return cards
 
 
 # ----------------------------------------------------
-# CLASSIFICAÇÃO
+# CLASSIFICAR
 # ----------------------------------------------------
-
 def classify_cards(cards):
     hoje = date.today()
 
@@ -161,55 +224,40 @@ def classify_cards(cards):
     atraso = []
 
     for c in cards:
+        cid = c["id"]
+        c["confirmado"] = CACHE["confirmados"].get(cid)
 
-        data_str = c.get("dataChegada", "").strip()
-        d = parse_date_str(data_str)
+        d = parse_date_str(c["dataChegada"])
 
-        # 1) Data inválida → EM DIA
-        if d is None:
+        if d is None or d > hoje:
+            c["lista"] = "em_dia"
             em_dia.append(c)
             continue
 
-        # 2) FUTURO → EM DIA normal
-        if d > hoje:
-            em_dia.append(c)
-            continue
-
-        # 3) PASSADO → ENTREGUE automático
         if d < hoje:
+            c["lista"] = "entregue"
             entregue.append(c)
             continue
 
-        # 4) HOJE → precisa perguntar
-        cid = c["id"]
-
-        # ainda não respondeu → fica em dia, mas PRIORITÁRIO
         if cid not in CACHE["confirmados"]:
-            c["_prioritario"] = True    # marca para ordenar depois
+            c["lista"] = "em_dia"
+            c["_prioritario"] = True
             em_dia.append(c)
             continue
 
-        # respondeu: chegou → entregue
         if CACHE["confirmados"][cid] is True:
             entregue.append(c)
         else:
             atraso.append(c)
 
-    # ------------------------------------------------
-    # ORDENAR EM DIA: prioridade primeiro
-    # ------------------------------------------------
     prioridade = [c for c in em_dia if c.get("_prioritario")]
     resto = [c for c in em_dia if not c.get("_prioritario")]
 
-    # junta com prioridade primeiro
-    em_dia_ordenado = prioridade + resto
-
-    # remove a flag antes de enviar ao frontend
-    for c in em_dia_ordenado:
+    for c in prioridade:
         c.pop("_prioritario", None)
 
     return {
-        "em_dia": em_dia_ordenado,
+        "em_dia": prioridade + resto,
         "entregue": entregue,
         "atraso": atraso
     }
@@ -218,7 +266,6 @@ def classify_cards(cards):
 # ----------------------------------------------------
 # CACHE
 # ----------------------------------------------------
-
 CACHE = {
     "reservas": {"em_dia": [], "entregue": [], "atraso": []},
     "requisicoes": {"em_dia": [], "entregue": [], "atraso": []},
@@ -227,91 +274,78 @@ CACHE = {
 
 
 def carregar_cache():
-
-    # RESERVAS
     try:
-        arquivos = [
-            os.path.join(PASTA_RESERVAS, f)
-            for f in os.listdir(PASTA_RESERVAS)
-        ]
-        arquivos = [f for f in arquivos if os.path.isfile(f)]
+        arq = [os.path.join(PASTA_RESERVAS, f) for f in os.listdir(PASTA_RESERVAS)]
+        arq = [f for f in arq if os.path.isfile(f)]
+        if arq:
+            newest = max(arq, key=os.path.getmtime)
+            CACHE["reservas"] = classify_cards(parse_reservas_file(newest))
+    except:
+        pass
 
-        if arquivos:
-            newest = max(arquivos, key=os.path.getmtime)
-            cards = parse_reservas_file(newest)
-            CACHE["reservas"] = classify_cards(cards)
-
-    except Exception as e:
-        print("Erro reservas:", e)
-
-    # REQUISIÇÕES
     try:
-        arquivos = [
-            os.path.join(PASTA_REQUISICOES, f)
-            for f in os.listdir(PASTA_REQUISICOES)
-        ]
-        arquivos = [f for f in arquivos if os.path.isfile(f)]
-
-        if arquivos:
-            newest = max(arquivos, key=os.path.getmtime)
-            cards = parse_requisicoes_file(newest)
-            CACHE["requisicoes"] = classify_cards(cards)
-
-    except Exception as e:
-        print("Erro requisicoes:", e)
+        arq = [os.path.join(PASTA_REQUISICOES, f) for f in os.listdir(PASTA_REQUISICOES)]
+        arq = [f for f in arq if os.path.isfile(f)]
+        if arq:
+            newest = max(arq, key=os.path.getmtime)
+            CACHE["requisicoes"] = classify_cards(parse_requisicoes_file(newest))
+    except:
+        pass
 
 
 # ----------------------------------------------------
-# MONITORAMENTO DE ARQUIVOS SAP
+# WATCHER
 # ----------------------------------------------------
-
 class WatchHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if not event.is_directory:
-            print("Arquivo modificado:", event.src_path)
             carregar_cache()
 
     def on_created(self, event):
         if not event.is_directory:
-            print("Arquivo criado:", event.src_path)
             carregar_cache()
 
 
 def start_watch():
     obs = Observer()
-
     if os.path.isdir(PASTA_RESERVAS):
-        obs.schedule(WatchHandler(), PASTA_RESERVAS, recursive=False)
-
+        obs.schedule(WatchHandler(), PASTA_RESERVAS)
     if os.path.isdir(PASTA_REQUISICOES):
-        obs.schedule(WatchHandler(), PASTA_REQUISICOES, recursive=False)
-
+        obs.schedule(WatchHandler(), PASTA_REQUISICOES)
     obs.start()
     try:
         while True:
             time.sleep(1)
-    except KeyboardInterrupt:
+    except:
         obs.stop()
     obs.join()
 
 
 # ----------------------------------------------------
-# API – Confirmar Chegada
+# API — CONFIRMAR
 # ----------------------------------------------------
-
 @app.route("/api/confirmar", methods=["POST"])
 def confirmar():
     data = request.json
-    id = data["id"]
+    cid = data["id"]
     chegou = data["chegou"]
-    CACHE["confirmados"][id] = chegou
+
+    CACHE["confirmados"][cid] = chegou
+    salvar_confirmados()
+
+    CACHE["reservas"] = classify_cards(
+        CACHE["reservas"]["em_dia"] + CACHE["reservas"]["entregue"] + CACHE["reservas"]["atraso"]
+    )
+    CACHE["requisicoes"] = classify_cards(
+        CACHE["requisicoes"]["em_dia"] + CACHE["requisicoes"]["entregue"] + CACHE["requisicoes"]["atraso"]
+    )
+
     return jsonify({"ok": True})
 
 
 # ----------------------------------------------------
 # ROTAS
 # ----------------------------------------------------
-
 @app.route("/api/reservas")
 def api_reservas():
     return jsonify(CACHE["reservas"])
@@ -328,10 +362,10 @@ def index():
 
 
 # ----------------------------------------------------
-# INICIAR SERVIDOR
+# RUN
 # ----------------------------------------------------
-
 if __name__ == "__main__":
+    carregar_confirmados()
     carregar_cache()
     Thread(target=start_watch, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
