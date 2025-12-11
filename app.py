@@ -5,6 +5,7 @@ import uuid
 from datetime import datetime, date
 from threading import Thread
 from flask import Flask, jsonify, send_from_directory, request
+from waitress import serve
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from flask_sqlalchemy import SQLAlchemy
@@ -354,4 +355,4 @@ if __name__=="__main__":
     carregar_confirmados_db()
     carregar_cache()
     Thread(target=start_watch, daemon=True).start()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    serve(app, host="0.0.0.0", port=8000, threads=4)
