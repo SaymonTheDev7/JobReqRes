@@ -2,36 +2,68 @@
 <html>
 <head>
   <meta charset="utf-8"/>
-  <title>SAP Viewer</title>
+  <title>SAP VIEWER — FAB VIII</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
   <style>
+    :root {
+      --azul: #1d4ed8;
+      --azul-escuro: #1e3a8a;
+      --cinza-claro: #e5e7eb;
+      --cinza-medio: #6b7280;
+      --cinza-escuro: #374151;
+      --bg: #f3f4f6;
+      --card: #ffffff;
+    }
+
     body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(to bottom right, #eef1f7, #dfe3eb);
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #eef2ff, #dbeafe);
       padding: 20px;
+      margin: 0;
+      color: var(--cinza-escuro);
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 34px;
+      font-weight: 700;
+      margin-bottom: 30px;
+      color: var(--azul-escuro);
+      letter-spacing: 0.8px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
 
     .tabs {
       display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 25px;
     }
 
     .tab {
-      padding: 10px 16px;
-      border-radius: 6px;
-      background: #e5e7eb;
+      padding: 12px 20px;
+      border-radius: 12px;
+      background: var(--cinza-claro);
       cursor: pointer;
-      transition: 0.2s;
+      transition: 0.25s;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--cinza-escuro);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
     }
 
-    .tab:hover { background: #d4d7dd; }
+    .tab:hover {
+      background: #d1d5db;
+      transform: translateY(-2px);
+    }
 
     .tab.active {
-      background: #2563eb;
+      background: var(--azul);
       color: white;
-      font-weight: bold;
-      transform: translateY(-2px);
+      transform: translateY(-3px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.18);
     }
 
     .section { display: none; }
@@ -44,12 +76,21 @@
 
     .coluna {
       flex: 1;
-      background: #fff;
-      border-radius: 10px;
-      padding: 10px;
-      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+      background: var(--card);
+      border-radius: 18px;
+      padding: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
       display: flex;
       flex-direction: column;
+      border: 1px solid #e0e7ff;
+    }
+
+    .coluna h2 {
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: var(--azul-escuro);
+      font-weight: 600;
     }
 
     .scroll-coluna {
@@ -59,18 +100,18 @@
     }
 
     .card {
-      background: white;
+      background: var(--card);
       padding: 18px;
-      border-radius: 14px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
-      border-left: 6px solid #2563eb;
+      border-radius: 16px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      border-left: 6px solid var(--azul);
       margin-bottom: 18px;
-      transition: transform 0.2s ease, opacity 0.2s ease;
+      transition: transform 0.25s ease, opacity 0.25s ease;
     }
 
     .card:hover {
       transform: translateY(-3px);
-      box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
     }
 
     .card.slide-out {
@@ -80,49 +121,57 @@
 
     .title {
       font-size: 17px;
-      font-weight: bold;
+      font-weight: 600;
       margin-bottom: 10px;
+      color: var(--azul-escuro);
     }
 
-    .row { margin-bottom: 8px; font-size: 15px; }
+    .row {
+      margin-bottom: 8px;
+      font-size: 15px;
+      color: var(--cinza-medio);
+    }
+
     .icon { margin-right: 6px; }
 
     .pergunta {
-      margin-top: 10px;
-      background: #f8f8f8;
-      padding: 10px;
-      border-radius: 8px;
+      margin-top: 12px;
+      background: #f8fafc;
+      padding: 12px;
+      border-radius: 10px;
       text-align: center;
-      border: 1px solid #ddd;
+      border: 1px solid #e2e8f0;
+      font-size: 14px;
+      color: #475569;
     }
 
     .btn {
       padding: 7px 12px;
       border: none;
       color: white;
-      margin: 5px;
+      margin: 6px;
       cursor: pointer;
       border-radius: 8px;
-      font-weight: bold;
+      font-weight: 600;
       transition: 0.15s;
+      font-size: 14px;
     }
 
     .btn-sim { background: #16a34a; }
     .btn-nao { background: #dc2626; }
-    .btn:hover { opacity: 0.8; }
+    .btn:hover { opacity: 0.85; }
   </style>
 </head>
 
 <body>
 
-<h1>SAP Viewer — Reservas & Compras</h1>
+<h1>SAP VIEWER — FAB VIII</h1>
 
 <div class="tabs">
   <div class="tab active" data-target="reservas">Reservas</div>
   <div class="tab" data-target="compras">Compras</div>
 </div>
 
-<!-- RESERVAS -->
 <div id="reservas" class="section active">
   <div class="container-3colunas">
     <div class="coluna"><h2>Em Dia</h2><div id="res-em-dia" class="scroll-coluna"></div></div>
@@ -131,7 +180,6 @@
   </div>
 </div>
 
-<!-- COMPRAS -->
 <div id="compras" class="section">
   <div class="container-3colunas">
     <div class="coluna"><h2>Em Dia</h2><div id="req-em-dia" class="scroll-coluna"></div></div>
@@ -148,7 +196,6 @@ $all(".tab").forEach(t=>{
   t.onclick = () => {
     $all(".tab").forEach(x=>x.classList.remove("active"));
     t.classList.add("active");
-
     $all(".section").forEach(x=>x.classList.remove("active"));
     $("#" + t.dataset.target).classList.add("active");
   }
@@ -161,7 +208,6 @@ function hojeISO(){
 
 async function confirmar(id, chegou, card){
   card.classList.add("slide-out");
-
   setTimeout(async () => {
     await fetch("/api/confirmar", {
       method: "POST",
@@ -174,14 +220,12 @@ async function confirmar(id, chegou, card){
 
 function makeCard(item){
   let estaEntregue = item.lista === "entregue";
-
   let devePerguntar =
     item.dataChegadaISO === hojeISO() &&
     !item.confirmado &&
     !estaEntregue;
 
   let pergunta = "";
-
   if (devePerguntar){
     pergunta = `
       <div class="pergunta">
@@ -195,21 +239,10 @@ function makeCard(item){
   return `
   <div class="card">
     <div class="title">🧩 ${item.descricao}</div>
-
-    <div class="row"><span class="icon">📦</span>
-      ${item.tipo === "reserva" ? "Reserva" : "Requisição"}: ${item.reserva || item.reqc}
-    </div>
-
+    <div class="row"><span class="icon">📦</span>${item.tipo === "reserva" ? "Reserva" : "Requisição"}: ${item.reserva || item.reqc}</div>
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
-
-    <div class="row"><span class="icon">📅</span>
-      Data de Chegada: <b>${item.dataChegada}</b>
-    </div>
-
-    ${item.usuario ? `
-      <div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>
-    ` : ""}
-
+    <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
+    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
     ${pergunta}
   </div>`;
 }
@@ -226,7 +259,6 @@ function ativarScroll(div, lista){
   }
 
   loadMore();
-
   div.onscroll = () => {
     if(div.scrollTop + div.clientHeight >= div.scrollHeight - 5){
       loadMore();
@@ -260,5 +292,6 @@ async function carregar(){
 
 carregar();
 </script>
+
 </body>
 </html>

@@ -2,60 +2,66 @@ import os
 import re
 import time
 import uuid
-import json
 from datetime import datetime, date
 from threading import Thread
 from flask import Flask, jsonify, send_from_directory, request
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-
-# --------- CAMINHOS DOS JOBS ----------
-PASTA_RESERVAS = r"Q:\APPS\SAP\EP0\Job_Reservas"
-PASTA_REQUISICOES = r"Q:\APPS\SAP\EP0\Job_Requisicao"
-# --------------------------------------
-
-CONFIRMADOS_FILE = "confirmados.json"
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
+DB_FILE = "app.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_FILE}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+class Confirmacao(db.Model):
+    __tablename__ = "confirmacoes"
+    id = db.Column(db.String(64), primary_key=True)
+    tipo = db.Column(db.String(20))
+    chegou = db.Column(db.Boolean, nullable=False)
+    quando = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now())
+
+with app.app_context():
+    db.create_all()
+
+PASTA_RESERVAS = r"Q:\APPS\SAP\EP0\Job_Reservas"
+PASTA_REQUISICOES = r"Q:\APPS\SAP\EP0\Job_Requisicao"
+
 DATE_RE = re.compile(r'\b(\d{1,2}\.\d{1,2}\.\d{4})\b')
 
+CACHE = {
+    "reservas": {"em_dia": [], "entregue": [], "atraso": []},
+    "requisicoes": {"em_dia": [], "entregue": [], "atraso": []},
+    "confirmados": {}
+}
 
-# ----------------------------------------------------
-# JSON PERSISTÊNCIA
-# ----------------------------------------------------
-def salvar_confirmados():
-    try:
-        with open(CONFIRMADOS_FILE, "w") as f:
-            json.dump(CACHE["confirmados"], f)
-    except Exception as e:
-        print("Erro salvando confirmados:", e)
+def carregar_confirmados_db():
+    CACHE["confirmados"].clear()
+    with app.app_context():
+        for c in Confirmacao.query.all():
+            CACHE["confirmados"][c.id] = bool(c.chegou)
 
+def salvar_confirmacao_db(cid, tipo, chegou):
+    with app.app_context():
+        rec = Confirmacao.query.get(cid)
+        if rec is None:
+            rec = Confirmacao(id=cid, tipo=tipo, chegou=chegou)
+            db.session.add(rec)
+        else:
+            rec.chegou = chegou
+        db.session.commit()
 
-def carregar_confirmados():
-    if os.path.exists(CONFIRMADOS_FILE):
-        try:
-            with open(CONFIRMADOS_FILE, "r") as f:
-                CACHE["confirmados"] = json.load(f)
-        except Exception as e:
-            print("Erro carregando confirmados:", e)
-
-
-# ----------------------------------------------------
-# AUX
-# ----------------------------------------------------
 def split_cols(line: str):
     parts = line.split("|")
-    if len(parts) < 2:
-        return []
     trimmed = [p.strip() for p in parts]
-    return trimmed[1:-1]
-
+    return trimmed[1:-1] if len(trimmed) > 2 else []
 
 def parse_date_str(s: str):
-    if not s:
-        return None
-    m = DATE_RE.search(s)
+    m = DATE_RE.search(s or "")
     if not m:
         return None
     try:
@@ -63,16 +69,118 @@ def parse_date_str(s: str):
     except:
         return None
 
-
-# ----------------------------------------------------
-# PARSER RESERVAS
-# ----------------------------------------------------
-def parse_reservas_file(path: str):
+def parse_requisicoes_file(path: str):
     cards = []
-
     try:
         with open(path, "r", encoding="latin-1", errors="ignore") as f:
             lines = f.readlines()
+    except:
+        return cards
+
+    modo_lista_compra = any("Exibir lista de requisições de compra" in l for l in lines)
+
+    if modo_lista_compra:
+        for raw in lines:
+            texto = raw.rstrip("\n")
+            if "|" not in texto or "Material" in texto or "---" in texto:
+                continue
+
+            cols = split_cols(texto)
+            while len(cols) < 13:
+                cols.append("")
+
+            reqc = cols[1]
+            mat = cols[2]
+            desc = cols[3]
+            quant = cols[4]
+            dataRem = cols[10]
+            usuario = cols[5]
+
+            d = parse_date_str(dataRem)
+
+            cards.append({
+                "id": str(uuid.uuid4()),
+                "tipo": "requisicao",
+                "reqc": reqc,
+                "material": mat,
+                "descricao": desc,
+                "quantidade": quant,
+                "um": "",
+                "usuario": usuario,
+                "pedido": cols[0],
+                "dataSolic": "",
+                "dataChegada": dataRem.strip(),
+                "dataChegadaISO": d.isoformat() if d else None,
+                "confirmado": False,
+                "lista": ""
+            })
+
+        return cards
+
+    def is_probable_user(s: str):
+        if not s:
+            return False
+        if DATE_RE.search(s):
+            return False
+        if re.search(r"[A-Za-zÀ-ú]", s):
+            return len(s) <= 80
+        return False
+
+    for raw in lines:
+        texto = raw.rstrip("\n")
+
+        if "Texto breve" in texto or "---" in texto:
+            continue
+        if "|" not in texto or texto.count("|") < 6:
+            continue
+
+        cols = split_cols(texto)
+        while len(cols) < 12:
+            cols.append("")
+
+        reqc = cols[0]
+        dataSolic = cols[1]
+        dataRem = cols[2]
+        mat = cols[3]
+        desc = cols[4]
+        quant = cols[5]
+        um = cols[6]
+        pedido = cols[7]
+
+        usuario = ""
+        for i in [8,7,5,9,10]:
+            if len(cols) > i and is_probable_user(cols[i]):
+                usuario = cols[i]
+                break
+        if not usuario:
+            usuario = cols[8]
+
+        d = parse_date_str(dataRem)
+
+        cards.append({
+            "id": str(uuid.uuid4()),
+            "tipo": "requisicao",
+            "reqc": reqc,
+            "material": mat,
+            "descricao": desc,
+            "quantidade": quant,
+            "um": um,
+            "usuario": usuario,
+            "pedido": pedido,
+            "dataSolic": dataSolic,
+            "dataChegada": dataRem.strip(),
+            "dataChegadaISO": d.isoformat() if d else None,
+            "confirmado": False,
+            "lista": ""
+        })
+
+    return cards
+
+def parse_reservas_file(path: str):
+    cards = []
+    try:
+        with open(path,"r",encoding="latin-1",errors="ignore") as f:
+            lines=f.readlines()
     except:
         return cards
 
@@ -81,13 +189,10 @@ def parse_reservas_file(path: str):
 
         if not texto.startswith("|"):
             continue
-        if "Ordem" in texto or "Material" in texto:
-            continue
-        if "---" in texto:
+        if "Ordem" in texto or "Material" in texto or "---" in texto:
             continue
 
         cols = split_cols(texto)
-
         if not cols:
             continue
 
@@ -112,7 +217,6 @@ def parse_reservas_file(path: str):
         cards.append({
             "id": str(uuid.uuid4()),
             "tipo": "reserva",
-
             "ordem": ordem,
             "material": material,
             "descricao": descricao,
@@ -121,104 +225,16 @@ def parse_reservas_file(path: str):
             "usuario": usuario,
             "reserva": reserva,
             "recebedor": recebedor,
-
             "dataChegada": dataNec.strip(),
             "dataChegadaISO": d.isoformat() if d else None,
-
             "confirmado": False,
             "lista": ""
         })
 
     return cards
 
-
-# ----------------------------------------------------
-# PARSER REQUISIÇÕES
-# ----------------------------------------------------
-def parse_requisicoes_file(path: str):
-    cards = []
-    try:
-        with open(path, "r", encoding="latin-1", errors="ignore") as f:
-            lines = f.readlines()
-    except:
-        return cards
-
-    def is_probable_user(s: str):
-        if not s:
-            return False
-        if DATE_RE.search(s):
-            return False
-        if re.search(r"[A-Za-zÀ-ú]", s):
-            return len(s) <= 80
-        return False
-
-    for raw in lines:
-        texto = raw.rstrip("\n")
-
-        if not texto.strip():
-            continue
-        if "Texto breve" in texto:
-            continue
-        if "---" in texto:
-            continue
-        if "|" not in texto:
-            continue
-        if texto.count("|") < 6:
-            continue
-
-        cols = split_cols(texto)
-
-        while len(cols) < 12:
-            cols.append("")
-
-        reqc = cols[0]
-        dataSolic = cols[1]
-        dataRem = cols[2]
-        mat = cols[3]
-        desc = cols[4]
-        quant = cols[5]
-        um = cols[6]
-        pedido = cols[7]
-
-        usuario = ""
-        for i in [8, 7, 5, 9, 10]:
-            if len(cols) > i and is_probable_user(cols[i]):
-                usuario = cols[i]
-                break
-        if not usuario:
-            usuario = cols[8] if len(cols) > 8 else ""
-
-        d = parse_date_str(dataRem)
-
-        cards.append({
-            "id": str(uuid.uuid4()),
-            "tipo": "requisicao",
-
-            "reqc": reqc,
-            "material": mat,
-            "descricao": desc,
-            "quantidade": quant,
-            "um": um,
-            "usuario": usuario,
-            "pedido": pedido,
-
-            "dataSolic": dataSolic,
-            "dataChegada": dataRem.strip(),
-            "dataChegadaISO": d.isoformat() if d else None,
-
-            "confirmado": False,
-            "lista": ""
-        })
-
-    return cards
-
-
-# ----------------------------------------------------
-# CLASSIFICAR
-# ----------------------------------------------------
 def classify_cards(cards):
     hoje = date.today()
-
     em_dia = []
     entregue = []
     atraso = []
@@ -226,7 +242,6 @@ def classify_cards(cards):
     for c in cards:
         cid = c["id"]
         c["confirmado"] = CACHE["confirmados"].get(cid)
-
         d = parse_date_str(c["dataChegada"])
 
         if d is None or d > hoje:
@@ -240,12 +255,12 @@ def classify_cards(cards):
             continue
 
         if cid not in CACHE["confirmados"]:
-            c["lista"] = "em_dia"
             c["_prioritario"] = True
+            c["lista"] = "em_dia"
             em_dia.append(c)
             continue
 
-        if CACHE["confirmados"][cid] is True:
+        if CACHE["confirmados"][cid]:
             entregue.append(c)
         else:
             atraso.append(c)
@@ -261,17 +276,6 @@ def classify_cards(cards):
         "entregue": entregue,
         "atraso": atraso
     }
-
-
-# ----------------------------------------------------
-# CACHE
-# ----------------------------------------------------
-CACHE = {
-    "reservas": {"em_dia": [], "entregue": [], "atraso": []},
-    "requisicoes": {"em_dia": [], "entregue": [], "atraso": []},
-    "confirmados": {}
-}
-
 
 def carregar_cache():
     try:
@@ -292,19 +296,13 @@ def carregar_cache():
     except:
         pass
 
-
-# ----------------------------------------------------
-# WATCHER
-# ----------------------------------------------------
 class WatchHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if not event.is_directory:
             carregar_cache()
-
     def on_created(self, event):
         if not event.is_directory:
             carregar_cache()
-
 
 def start_watch():
     obs = Observer()
@@ -320,52 +318,32 @@ def start_watch():
         obs.stop()
     obs.join()
 
-
-# ----------------------------------------------------
-# API — CONFIRMAR
-# ----------------------------------------------------
 @app.route("/api/confirmar", methods=["POST"])
 def confirmar():
     data = request.json
     cid = data["id"]
     chegou = data["chegou"]
-
+    tipo = data.get("tipo")
+    salvar_confirmacao_db(cid, tipo, chegou)
     CACHE["confirmados"][cid] = chegou
-    salvar_confirmados()
-
-    CACHE["reservas"] = classify_cards(
-        CACHE["reservas"]["em_dia"] + CACHE["reservas"]["entregue"] + CACHE["reservas"]["atraso"]
-    )
-    CACHE["requisicoes"] = classify_cards(
-        CACHE["requisicoes"]["em_dia"] + CACHE["requisicoes"]["entregue"] + CACHE["requisicoes"]["atraso"]
-    )
-
+    CACHE["reservas"] = classify_cards(CACHE["reservas"]["em_dia"]+CACHE["reservas"]["entregue"]+CACHE["reservas"]["atraso"])
+    CACHE["requisicoes"] = classify_cards(CACHE["requisicoes"]["em_dia"]+CACHE["requisicoes"]["entregue"]+CACHE["requisicoes"]["atraso"])
     return jsonify({"ok": True})
 
-
-# ----------------------------------------------------
-# ROTAS
-# ----------------------------------------------------
 @app.route("/api/reservas")
 def api_reservas():
     return jsonify(CACHE["reservas"])
-
 
 @app.route("/api/requisicoes")
 def api_requisicoes():
     return jsonify(CACHE["requisicoes"])
 
-
 @app.route("/")
 def index():
     return send_from_directory("static", "index.html")
 
-
-# ----------------------------------------------------
-# RUN
-# ----------------------------------------------------
-if __name__ == "__main__":
-    carregar_confirmados()
+if __name__=="__main__":
+    carregar_confirmados_db()
     carregar_cache()
     Thread(target=start_watch, daemon=True).start()
     app.run(host="0.0.0.0", port=5000, debug=True)
