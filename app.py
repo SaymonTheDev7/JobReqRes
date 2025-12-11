@@ -79,6 +79,9 @@ def parse_requisicoes_file(path: str):
 
     modo_lista_compra = any("Exibir lista de requisições de compra" in l for l in lines)
 
+    # ----------------------------------------------------------
+    #  MODO "LISTA DE REQUISIÇÕES DE COMPRA" → usa colunas fixas
+    # ----------------------------------------------------------
     if modo_lista_compra:
         for raw in lines:
             texto = raw.rstrip("\n")
@@ -93,8 +96,10 @@ def parse_requisicoes_file(path: str):
             mat = cols[2]
             desc = cols[3]
             quant = cols[4]
-            dataRem = cols[10]
             usuario = cols[5]
+            preco_aval = cols[6]
+            val_total = cols[7]    # ← AQUI PEGAMOS O VALOR TOTAL
+            dataRem = cols[11]
 
             d = parse_date_str(dataRem)
 
@@ -108,6 +113,8 @@ def parse_requisicoes_file(path: str):
                 "um": "",
                 "usuario": usuario,
                 "pedido": cols[0],
+                "preco_aval": preco_aval,
+                "val_total": val_total,    # ← JÁ ENVIADO AO FRONT
                 "dataSolic": "",
                 "dataChegada": dataRem.strip(),
                 "dataChegadaISO": d.isoformat() if d else None,
@@ -116,6 +123,7 @@ def parse_requisicoes_file(path: str):
             })
 
         return cards
+
 
     def is_probable_user(s: str):
         if not s:
