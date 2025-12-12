@@ -1,7 +1,8 @@
 <!doctype html>
 <html>
+
 <head>
-  <meta charset="utf-8"/>
+  <meta charset="utf-8" />
   <title>SAP VIEWER — FAB VIII</title>
 
   <link rel="icon" type="image/x-icon" href="/static/favicon.ico" />
@@ -34,10 +35,9 @@
       margin-bottom: 30px;
       color: var(--azul-escuro);
       letter-spacing: 0.8px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }
 
-    /* BOTÃO FILTRO */
     #btn-filtro {
       position: fixed;
       top: 25px;
@@ -50,17 +50,59 @@
       border-radius: 10px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.20);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.20);
       transition: 0.2s;
     }
-    #btn-filtro:hover { background: var(--azul-escuro); transform: translateY(-2px); }
 
-    /* POPUP */
+    #btn-filtro:hover {
+      background: var(--azul-escuro);
+      transform: translateY(-2px);
+    }
+
+    /* NOVA BARRA DE PESQUISA */
+    #search-wrapper {
+      margin-top: 30px;
+      margin-bottom: 30px;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      width: 350px;
+      padding: 6px 12px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+      transition: 0.2s;
+    }
+
+
+    #search-wrapper:hover {
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+      transform: translateY(-2px);
+    }
+
+    #search-icon {
+      font-size: 18px;
+      margin-right: 10px;
+      opacity: 0.6;
+    }
+
+    #search-bar {
+      flex: 1;
+      border: none;
+      font-size: 16px;
+      outline: none;
+      background: transparent;
+      padding: 10px 5px;
+      color: var(--cinza-escuro);
+    }
+
     #popup-filtro {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.45);
+      background: rgba(0, 0, 0, 0.45);
       backdrop-filter: blur(3px);
       justify-content: center;
       align-items: center;
@@ -73,30 +115,19 @@
       border-radius: 14px;
       width: 320px;
       animation: pop 0.25s ease;
-      box-shadow: 0 8px 22px rgba(0,0,0,0.25);
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
     }
 
     @keyframes pop {
-      from { transform: scale(0.85); opacity: 0; }
-      to   { transform: scale(1); opacity: 1; }
-    }
+      from {
+        transform: scale(0.85);
+        opacity: 0;
+      }
 
-    #popup-card h3 {
-      margin-top: 0;
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--azul-escuro);
-      margin-bottom: 15px;
-      text-align: center;
-    }
-
-    #popup-card select {
-      width: 100%;
-      padding: 10px;
-      border-radius: 10px;
-      border: 1px solid #cbd5e1;
-      font-size: 16px;
-      margin-bottom: 20px;
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
     }
 
     .btn-popup {
@@ -110,13 +141,24 @@
       margin-bottom: 10px;
     }
 
-    #btn-aplicar { background: var(--azul); color: white; }
-    #btn-aplicar:hover { background: var(--azul-escuro); }
+    #btn-aplicar {
+      background: var(--azul);
+      color: white;
+    }
 
-    #btn-limpar { background: #dc2626; color: white; }
-    #btn-limpar:hover { opacity: 0.85; }
+    #btn-aplicar:hover {
+      background: var(--azul-escuro);
+    }
 
-    /* TABS */
+    #btn-limpar {
+      background: #dc2626;
+      color: white;
+    }
+
+    #btn-limpar:hover {
+      opacity: 0.85;
+    }
+
     .tabs {
       display: flex;
       gap: 12px;
@@ -133,20 +175,24 @@
       font-size: 15px;
       font-weight: 600;
       color: var(--cinza-escuro);
-      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
     }
 
     .tab.active {
       background: var(--azul);
       color: white;
       transform: translateY(-3px);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
     }
 
-    .section { display: none; }
-    .section.active { display: block; }
+    .section {
+      display: none;
+    }
 
-    /* COLUNAS */
+    .section.active {
+      display: block;
+    }
+
     .container-3colunas {
       display: flex;
       gap: 20px;
@@ -157,7 +203,7 @@
       background: var(--card);
       border-radius: 18px;
       padding: 15px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.10);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.10);
       border: 1px solid #e0e7ff;
     }
 
@@ -171,13 +217,15 @@
       background: var(--card);
       padding: 18px;
       border-radius: 16px;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
       border-left: 6px solid var(--azul);
       margin-bottom: 18px;
       transition: 0.25s ease;
     }
 
-    .card:hover { transform: translateY(-3px); }
+    .card:hover {
+      transform: translateY(-3px);
+    }
 
     .title {
       font-size: 17px;
@@ -190,178 +238,204 @@
 
 <body>
 
-<h1>SAP VIEWER — FAB VIII</h1>
+  <h1>SAP VIEWER — FAB VIII</h1>
 
-<button id="btn-filtro">Filtro 🔍</button>
+  <button id="btn-filtro">Filtro 🔍</button>
 
-<!-- POPUP -->
-<div id="popup-filtro">
-  <div id="popup-card">
-    <h3>Filtrar por Usuário</h3>
-
-    <select id="filtro-usuario">
-      <option value="">Todos</option>
-    </select>
-
-    <button class="btn-popup" id="btn-aplicar">Aplicar</button>
-    <button class="btn-popup" id="btn-limpar">Limpar Filtro</button>
+  <!-- BARRA DE PESQUISA NOVA -->
+  <div id="search-wrapper">
+    <span id="search-icon">🔍</span>
+    <input type="text" id="search-bar" placeholder="Pesquisar..." autocomplete="off">
   </div>
-</div>
 
-<div class="tabs">
-  <div class="tab active" data-target="reservas">Reservas</div>
-  <div class="tab" data-target="compras">Compras</div>
-</div>
-
-<div id="reservas" class="section active">
-  <div class="container-3colunas">
-    <div class="coluna"><h2>Em Dia</h2><div id="res-em-dia" class="scroll-coluna"></div></div>
-    <div class="coluna"><h2>Entregue</h2><div id="res-entregue" class="scroll-coluna"></div></div>
-    <div class="coluna"><h2>Em Atraso</h2><div id="res-atraso" class="scroll-coluna"></div></div>
+  <div id="popup-filtro">
+    <div id="popup-card">
+      <h3>Filtrar por Usuário</h3>
+      <select id="filtro-usuario">
+        <option value="">Todos</option>
+      </select>
+      <button class="btn-popup" id="btn-aplicar">Aplicar</button>
+      <button class="btn-popup" id="btn-limpar">Limpar Filtro</button>
+    </div>
   </div>
-</div>
 
-<div id="compras" class="section">
-  <div class="container-3colunas">
-    <div class="coluna"><h2>Em Dia</h2><div id="req-em-dia" class="scroll-coluna"></div></div>
-    <div class="coluna"><h2>Entregue</h2><div id="req-entregue" class="scroll-coluna"></div></div>
-    <div class="coluna"><h2>Em Atraso</h2><div id="req-atraso" class="scroll-coluna"></div></div>
+  <div class="tabs">
+    <div class="tab active" data-target="reservas">Reservas</div>
+    <div class="tab" data-target="compras">Compras</div>
   </div>
-</div>
 
-<script>
-function $(s){ return document.querySelector(s); }
-function $all(s){ return [...document.querySelectorAll(s)]; }
+  <div id="reservas" class="section active">
+    <div class="container-3colunas">
+      <div class="coluna">
+        <h2>Em Dia</h2>
+        <div id="res-em-dia" class="scroll-coluna"></div>
+      </div>
+      <div class="coluna">
+        <h2>Entregue</h2>
+        <div id="res-entregue" class="scroll-coluna"></div>
+      </div>
+      <div class="coluna">
+        <h2>Em Atraso</h2>
+        <div id="res-atraso" class="scroll-coluna"></div>
+      </div>
+    </div>
+  </div>
 
-/* -------------------- POPUP LOGICA -------------------- */
-let FILTRO_USUARIO = "";
+  <div id="compras" class="section">
+    <div class="container-3colunas">
+      <div class="coluna">
+        <h2>Em Dia</h2>
+        <div id="req-em-dia" class="scroll-coluna"></div>
+      </div>
+      <div class="coluna">
+        <h2>Entregue</h2>
+        <div id="req-entregue" class="scroll-coluna"></div>
+      </div>
+      <div class="coluna">
+        <h2>Em Atraso</h2>
+        <div id="req-atraso" class="scroll-coluna"></div>
+      </div>
+    </div>
+  </div>
 
-$("#btn-filtro").onclick = () => $("#popup-filtro").style.display = "flex";
+  <script>
+    function $(s) { return document.querySelector(s); }
+    function $all(s) { return [...document.querySelectorAll(s)]; }
 
-$("#btn-aplicar").onclick = () => {
-  FILTRO_USUARIO = $("#filtro-usuario").value;
-  carregar();
-  $("#popup-filtro").style.display = "none";
-  $("#btn-filtro").textContent = FILTRO_USUARIO ? `Filtro: ${FILTRO_USUARIO}` : "Filtro 🔍";
-};
+    let FILTRO_USUARIO = "";
+    let SEARCH_TERM = "";
 
-$("#btn-limpar").onclick = () => {
-  FILTRO_USUARIO = "";
-  $("#filtro-usuario").value = "";
-  carregar();
-  $("#btn-filtro").textContent = "Filtro 🔍";
-  $("#popup-filtro").style.display = "none";
-};
+    $("#btn-filtro").onclick = () => $("#popup-filtro").style.display = "flex";
 
-$("#popup-filtro").onclick = e => {
-  if (e.target === $("#popup-filtro")) $("#popup-filtro").style.display = "none";
-};
+    $("#btn-aplicar").onclick = () => {
+      FILTRO_USUARIO = $("#filtro-usuario").value;
+      carregar();
+      $("#popup-filtro").style.display = "none";
+      $("#btn-filtro").textContent = FILTRO_USUARIO ? `Filtro: ${FILTRO_USUARIO}` : "Filtro 🔍";
+    };
 
-/* -------------------- TABS -------------------- */
-$all(".tab").forEach(t=>{
-  t.onclick = () => {
-    $all(".tab").forEach(x=>x.classList.remove("active"));
-    t.classList.add("active");
-    $all(".section").forEach(x=>x.classList.remove("active"));
-    $("#" + t.dataset.target).classList.add("active");
-  };
-});
+    $("#btn-limpar").onclick = () => {
+      FILTRO_USUARIO = "";
+      $("#filtro-usuario").value = "";
+      carregar();
+      $("#btn-filtro").textContent = "Filtro 🔍";
+      $("#popup-filtro").style.display = "none";
+    };
 
-/* -------------------- FILTRO -------------------- */
-function filtrarUsuario(lista) {
-  if (!FILTRO_USUARIO) return lista;
-  return lista.filter(x =>
-    (x.usuario || "").toUpperCase() === FILTRO_USUARIO.toUpperCase()
-  );
-}
+    $("#popup-filtro").onclick = e => {
+      if (e.target === $("#popup-filtro")) $("#popup-filtro").style.display = "none";
+    };
 
-/* -------------------- ORDENAR POR DATA (MAIS NOVA PRIMEIRO) -------------------- */
-function ordenarPorData(lista){
-  return lista.sort((a, b) => {
-    let da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : new Date(0);
-    let db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : new Date(0);
-    return db - da; // mais recente primeiro
-  });
-}
+    $("#search-bar").oninput = () => {
+      SEARCH_TERM = $("#search-bar").value.trim().toLowerCase();
+      carregar();
+    };
 
-/* -------------------- MAKECARD RESERVA -------------------- */
-function makeCardReserva(item){
-  return `
+    $all(".tab").forEach(t => {
+      t.onclick = () => {
+        $all(".tab").forEach(x => x.classList.remove("active"));
+        t.classList.add("active");
+        $all(".section").forEach(x => x.classList.remove("active"));
+        $("#" + t.dataset.target).classList.add("active");
+      };
+    });
+
+    function filtrarUsuario(lista) {
+      if (!FILTRO_USUARIO) return lista;
+      return lista.filter(x =>
+        (x.usuario || "").toUpperCase() === FILTRO_USUARIO.toUpperCase()
+      );
+    }
+
+    function filtrarPesquisa(lista) {
+      if (!SEARCH_TERM) return lista;
+      return lista.filter(obj =>
+        Object.values(obj).some(v =>
+          (v + "").toLowerCase().includes(SEARCH_TERM)
+        )
+      );
+    }
+
+    function ordenarPorData(lista) {
+      return lista.sort((a, b) => {
+        let da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : new Date(0);
+        let db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : new Date(0);
+        return db - da;
+      });
+    }
+
+    function makeCardReserva(item) {
+      return `
   <div class="card">
     <div class="title">🧩 ${item.descricao}</div>
     <div class="row"><span class="icon">📦</span> Reserva: ${item.reserva}</div>
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
     <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
-    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
+    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}  
   </div>`;
-}
+    }
 
-/* -------------------- MAKECARD COMPRA (com valor total) -------------------- */
-function makeCardCompra(item){
-  return `
+    function makeCardCompra(item) {
+      return `
   <div class="card">
     <div class="title">🧩 ${item.descricao}</div>
     <div class="row"><span class="icon">📦</span> Requisição: ${item.reqc}</div>
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
     <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
     ${item.val_total ? `<div class="row"><span class="icon">💰</span> Valor Total: R$ ${item.val_total}</div>` : ""}
-    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
+    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}  
   </div>`;
-}
-
-/* -------------------- SCROLL -------------------- */
-function ativarScroll(div, lista, tipo){
-  div.innerHTML = "";
-  let idx = 0;
-  const chunk = 25;
-
-  function load(){
-    let slice = lista.slice(idx, idx + chunk);
-
-    div.innerHTML += slice.map(item =>
-      tipo === "reserva" ? makeCardReserva(item) : makeCardCompra(item)
-    ).join("");
-
-    idx += chunk;
-  }
-
-  load();
-
-  div.onscroll = () => {
-    if(div.scrollTop + div.clientHeight >= div.scrollHeight - 5){
-      load();
     }
-  };
-}
 
-/* -------------------- LOAD -------------------- */
-async function carregar(){
-  const resv = await fetch("/api/reservas").then(r=>r.json());
-  const reqc = await fetch("/api/requisicoes").then(r=>r.json());
+    function ativarScroll(div, lista, tipo) {
+      div.innerHTML = "";
+      let idx = 0;
+      const chunk = 25;
 
-  let usuarios = new Set();
+      function load() {
+        let slice = lista.slice(idx, idx + chunk);
+        div.innerHTML += slice.map(item =>
+          tipo === "reserva" ? makeCardReserva(item) : makeCardCompra(item)
+        ).join("");
+        idx += chunk;
+      }
 
-  [...resv.em_dia, ...resv.entregue, ...resv.atraso,
-   ...reqc.em_dia, ...reqc.entregue, ...reqc.atraso].forEach(x=>{
-     if(x.usuario) usuarios.add(x.usuario);
-   });
+      load();
 
-  $("#filtro-usuario").innerHTML =
-    `<option value="">Todos</option>` +
-    [...usuarios].sort().map(u => `<option value="${u}">${u}</option>`).join("");
+      div.onscroll = () => {
+        if (div.scrollTop + div.clientHeight >= div.scrollHeight - 5) {
+          load();
+        }
+      };
+    }
 
-  // AQUI A ORDEM POR DATA É APLICADA
-  ativarScroll($("#res-em-dia"), ordenarPorData(filtrarUsuario(resv.em_dia)), "reserva");
-  ativarScroll($("#res-entregue"), ordenarPorData(filtrarUsuario(resv.entregue)), "reserva");
-  ativarScroll($("#res-atraso"), ordenarPorData(filtrarUsuario(resv.atraso)), "reserva");
+    async function carregar() {
+      const resv = await fetch("/api/reservas").then(r => r.json());
+      const reqc = await fetch("/api/requisicoes").then(r => r.json());
 
-  ativarScroll($("#req-em-dia"), ordenarPorData(filtrarUsuario(reqc.em_dia)), "compra");
-  ativarScroll($("#req-entregue"), ordenarPorData(filtrarUsuario(reqc.entregue)), "compra");
-  ativarScroll($("#req-atraso"), ordenarPorData(filtrarUsuario(reqc.atraso)), "compra");
-}
+      let usuarios = new Set();
 
-carregar();
-</script>
+      [...resv.em_dia, ...resv.entregue, ...resv.atraso,
+      ...reqc.em_dia, ...reqc.entregue, ...reqc.atraso].forEach(x => {
+        if (x.usuario) usuarios.add(x.usuario);
+      });
+
+      $("#filtro-usuario").innerHTML =
+        `<option value="">Todos</option>` +
+        [...usuarios].sort().map(u => `<option value="${u}">${u}</option>`).join("");
+
+      ativarScroll($("#res-em-dia"), ordenarPorData(filtrarPesquisa(filtrarUsuario(resv.em_dia))), "reserva");
+      ativarScroll($("#res-entregue"), ordenarPorData(filtrarPesquisa(filtrarUsuario(resv.entregue))), "reserva");
+      ativarScroll($("#res-atraso"), ordenarPorData(filtrarPesquisa(filtrarUsuario(resv.atraso))), "reserva");
+
+      ativarScroll($("#req-em-dia"), ordenarPorData(filtrarPesquisa(filtrarUsuario(reqc.em_dia))), "compra");
+      ativarScroll($("#req-entregue"), ordenarPorData(filtrarPesquisa(filtrarUsuario(reqc.entregue))), "compra");
+      ativarScroll($("#req-atraso"), ordenarPorData(filtrarPesquisa(filtrarUsuario(reqc.atraso))), "compra");
+    }
+
+    carregar();
+  </script>
 
 </body>
+
 </html>
