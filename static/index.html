@@ -59,7 +59,6 @@
       transform: translateY(-2px);
     }
 
-    /* NOVA BARRA DE PESQUISA */
     #search-wrapper {
       margin-top: 30px;
       margin-bottom: 30px;
@@ -75,7 +74,6 @@
       box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
       transition: 0.2s;
     }
-
 
     #search-wrapper:hover {
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
@@ -117,6 +115,35 @@
       animation: pop 0.25s ease;
       box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
     }
+
+    #filtro-usuario {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      font-size: 16px;
+      color: var(--cinza-escuro);
+      outline: none;
+      transition: 0.2s;
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg width='24' height='24' fill='gray' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 20px;
+      margin-bottom: 10px;
+    }
+
+    #filtro-usuario:hover {
+      border-color: var(--azul);
+    }
+
+    #filtro-usuario:focus {
+      border-color: var(--azul);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
+    }
+
 
     @keyframes pop {
       from {
@@ -233,16 +260,95 @@
       margin-bottom: 10px;
       color: var(--azul-escuro);
     }
+
+    #popup-login {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(3px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    #popup-login-card {
+      background: white;
+      width: 90%;
+      max-width: 325px;
+      padding: 25px;
+      border-radius: 14px;
+      box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+      animation: pop 0.25s ease;
+      text-align: center;
+      box-sizing: border-box;
+    }
+
+
+    #popup-login-card h3 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--cinza-escuro);
+      text-align: center;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+
+    #login-usuario {
+      width: 95%;
+      padding: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 16px;
+      margin-top: 10px;
+      margin-bottom: 15px;
+      outline: none;
+      box-sizing: border-box;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+
+    #login-usuario:focus {
+      border-color: var(--azul);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.25);
+    }
+
+    #btn-login-ok {
+      width: 100%;
+      padding: 12px;
+      background: var(--azul);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    #btn-login-ok:hover {
+      background: var(--azul-escuro);
+    }
   </style>
 </head>
 
 <body>
 
+  <div id="popup-login">
+    <div id="popup-login-card">
+      <h3>Insira seu usuário</h3>
+      <input type="text" id="login-usuario" placeholder="Digite seu usuário..." autocomplete="off">
+      <button id="btn-login-ok">Entrar</button>
+    </div>
+  </div>
+
+
   <h1>SAP VIEWER — FAB VIII</h1>
 
   <button id="btn-filtro">Filtro 🔍</button>
 
-  <!-- BARRA DE PESQUISA NOVA -->
   <div id="search-wrapper">
     <span id="search-icon">🔍</span>
     <input type="text" id="search-bar" placeholder="Pesquisar..." autocomplete="off">
@@ -250,14 +356,22 @@
 
   <div id="popup-filtro">
     <div id="popup-card">
+
       <h3>Filtrar por Usuário</h3>
+
       <select id="filtro-usuario">
-        <option value="">Todos</option>
+        <option value="">
+          Todos
+        </option>
       </select>
+
+
       <button class="btn-popup" id="btn-aplicar">Aplicar</button>
       <button class="btn-popup" id="btn-limpar">Limpar Filtro</button>
+
     </div>
   </div>
+
 
   <div class="tabs">
     <div class="tab active" data-target="reservas">Reservas</div>
@@ -313,6 +427,26 @@
       $("#popup-filtro").style.display = "none";
       $("#btn-filtro").textContent = FILTRO_USUARIO ? `Filtro: ${FILTRO_USUARIO}` : "Filtro 🔍";
     };
+
+    window.onload = () => {
+      $("#popup-login").style.display = "flex";
+
+      $("#btn-login-ok").onclick = () => {
+        const usuario = $("#login-usuario").value.trim();
+        if (usuario === "") return;
+
+        FILTRO_USUARIO = usuario;
+        $("#btn-filtro").textContent = `Filtro: ${usuario}`;
+
+        $("#popup-login").style.display = "none";
+        carregar();
+      };
+
+      $("#login-usuario").addEventListener("keypress", e => {
+        if (e.key === "Enter") $("#btn-login-ok").click();
+      });
+    };
+
 
     $("#btn-limpar").onclick = () => {
       FILTRO_USUARIO = "";
@@ -371,7 +505,7 @@
     <div class="row"><span class="icon">📦</span> Reserva: ${item.reserva}</div>
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
     <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
-    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}  
+    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
   </div>`;
     }
 
@@ -383,7 +517,7 @@
     <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
     <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
     ${item.val_total ? `<div class="row"><span class="icon">💰</span> Valor Total: R$ ${item.val_total}</div>` : ""}
-    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}  
+    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
   </div>`;
     }
 
