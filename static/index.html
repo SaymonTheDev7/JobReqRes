@@ -536,6 +536,17 @@
     function makeCardCompra(item) {
       const precisaPerguntar = item.perguntar === true;
 
+      let textoAprovacao = "Em liberação";
+      let corAprovacao = "#ca8a04";
+
+      if (item.aprovadoGestor === "SIM") {
+        textoAprovacao = "Sim";
+        corAprovacao = "#16a34a";
+      } else if (item.aprovadoGestor === "NAO") {
+        textoAprovacao = "Não";
+        corAprovacao = "#dc2626";
+      }
+
       return `
   <div class="card" style="${precisaPerguntar ? 'border-left-color:#dc2626;' : ''}">
     <div class="title">🧩 ${item.descricao}</div>
@@ -546,12 +557,10 @@
 
     <div class="row">
       🧾 Aprovado pelo Gestor:
-      <b style="color:${item.aprovadoGestor ? '#16a34a' : '#dc2626'}">
-        ${item.aprovadoGestor ? 'Sim' : 'Não'}
+      <b style="color:${corAprovacao}">
+        ${textoAprovacao}
       </b>
     </div>
-
-    
 
     ${item.val_total ? `<div class="row">💰 Valor Total: R$ ${item.val_total}</div>` : ""}
     ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
@@ -575,10 +584,6 @@
     ` : ""}
   </div>`;
     }
-
-
-
-
 
     function ativarScroll(div, lista, tipo) {
       div.innerHTML = "";

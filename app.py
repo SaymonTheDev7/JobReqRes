@@ -100,6 +100,8 @@ def parse_requisicoes_file(path):
     if header_idx is None:
         return cards
 
+    hoje = date.today()
+
     for raw in lines[header_idx + 1:]:
         if "|" not in raw or "---" in raw:
             continue
@@ -108,6 +110,7 @@ def parse_requisicoes_file(path):
         if not cols:
             continue
 
+        pedido = get_col(cols, col_map, "pedido").strip()
         reqc = get_col(cols, col_map, "reqc", "requisição").strip()
         material = get_col(cols, col_map, "material").strip()
         descricao = get_col(cols, col_map, "texto breve", "descrição").strip()
@@ -124,6 +127,14 @@ def parse_requisicoes_file(path):
             "data liberação",
             "data liber."
         ).strip()
+        data_solic = get_col(
+            cols,
+            col_map,
+            "dtasolic.",
+            "dtasolic",
+            "data solicitação",
+            "data solic."
+        ).strip()
 
         if (
             not reqc or
@@ -135,13 +146,25 @@ def parse_requisicoes_file(path):
         if usuario.lower() in ("criado/a", "usuario", "usuário"):
             usuario = ""
 
-        d = parse_date_str(data_rem)
-        aprovado_gestor = bool(data_liber)
+        d_rem = parse_date_str(data_rem)
+        d_solic = parse_date_str(data_solic)
+
+        if pedido:
+            status_aprovacao = "SIM"
+        elif d_solic:
+            dias = (hoje - d_solic).days
+            if dias < 30:
+                status_aprovacao = "EM_AGUARDO"
+            else:
+                status_aprovacao = "NAO"
+        else:
+            status_aprovacao = "NAO"
 
         cards.append({
             "id": f"REQ-{reqc}",
             "tipo": "requisicao",
             "reqc": reqc,
+            "pedido": pedido if pedido else None,
             "material": material,
             "descricao": descricao,
             "quantidade": quantidade,
@@ -149,14 +172,16 @@ def parse_requisicoes_file(path):
             "preco_aval": preco_aval,
             "val_total": val_total,
             "dataChegada": data_rem,
-            "dataChegadaISO": d.isoformat() if d else None,
-            "aprovadoGestor": aprovado_gestor,
+            "dataChegadaISO": d_rem.isoformat() if d_rem else None,
             "dataLiberacao": data_liber if data_liber else None,
+            "dataSolicitacao": data_solic if data_solic else None,
+            "aprovadoGestor": status_aprovacao,
             "confirmado": False,
             "lista": ""
         })
 
     return cards
+
 
 
 def parse_reservas_file(path):
