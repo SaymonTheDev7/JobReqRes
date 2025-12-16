@@ -14,8 +14,8 @@ from sqlalchemy import func
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 DB_FILE = "app.db"
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{DB_FILE}"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_FILE}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
@@ -32,7 +32,7 @@ with app.app_context():
 PASTA_RESERVAS = r"Q:\APPS\SAP\EP0\Job_Reservas"
 PASTA_REQUISICOES = r"Q:\APPS\SAP\EP0\Job_Requisicao"
 
-DATE_RE = re.compile(r'\b(\d{1,2}\.\d{1,2}\.\d{4})\b')
+DATE_RE = re.compile(r"\b(\d{1,2}\.\d{1,2}\.\d{4})\b")
 
 CACHE = {
     "reservas": {"em_dia": [], "entregue": [], "atraso": []},
@@ -56,12 +56,11 @@ def salvar_confirmacao_db(cid, tipo, chegou):
             rec.chegou = chegou
         db.session.commit()
 
-def split_cols(line: str):
-    parts = line.split("|")
-    trimmed = [p.strip() for p in parts]
-    return trimmed[1:-1] if len(trimmed) > 2 else []
+def split_cols(line):
+    parts = [p.strip() for p in line.split("|")]
+    return parts[1:-1] if len(parts) > 2 else []
 
-def parse_date_str(s: str):
+def parse_date_str(s):
     m = DATE_RE.search(s or "")
     if not m:
         return None
@@ -70,7 +69,18 @@ def parse_date_str(s: str):
     except:
         return None
 
-def parse_requisicoes_file(path: str):
+def build_col_index(header_line):
+    cols = split_cols(header_line)
+    return {c.lower(): i for i, c in enumerate(cols)}
+
+def get_col(cols, idx_map, *names):
+    for n in names:
+        i = idx_map.get(n.lower())
+        if i is not None and i < len(cols):
+            return cols[i]
+    return ""
+
+def parse_requisicoes_file(path):
     cards = []
     try:
         with open(path, "r", encoding="latin-1", errors="ignore") as f:
@@ -78,106 +88,58 @@ def parse_requisicoes_file(path: str):
     except:
         return cards
 
-    modo_lista_compra = any("Exibir lista de requisições de compra" in l for l in lines)
+    header_idx = None
+    col_map = {}
 
-    # ----------------------------------------------------------
-    #  MODO "LISTA DE REQUISIÇÕES DE COMPRA" → usa colunas fixas
-    # ----------------------------------------------------------
-    if modo_lista_compra:
-        for raw in lines:
-            texto = raw.rstrip("\n")
-            if "|" not in texto or "Material" in texto or "---" in texto:
-                continue
+    for i, l in enumerate(lines):
+        if "Texto breve" in l and "|" in l:
+            header_idx = i
+            col_map = build_col_index(l)
+            break
 
-            cols = split_cols(texto)
-            while len(cols) < 13:
-                cols.append("")
-
-            reqc = cols[1]
-            mat = cols[2]
-            desc = cols[3]
-            quant = cols[4]
-            usuario = cols[5]
-            preco_aval = cols[6]
-            val_total = cols[7]    # ← AQUI PEGAMOS O VALOR TOTAL
-            dataRem = cols[11]
-
-            d = parse_date_str(dataRem)
-
-            cards.append({
-                "id": str(uuid.uuid4()),
-                "tipo": "requisicao",
-                "reqc": reqc,
-                "material": mat,
-                "descricao": desc,
-                "quantidade": quant,
-                "um": "",
-                "usuario": usuario,
-                "pedido": cols[0],
-                "preco_aval": preco_aval,
-                "val_total": val_total,    # ← JÁ ENVIADO AO FRONT
-                "dataSolic": "",
-                "dataChegada": dataRem.strip(),
-                "dataChegadaISO": d.isoformat() if d else None,
-                "confirmado": False,
-                "lista": ""
-            })
-
+    if header_idx is None:
         return cards
 
-
-    def is_probable_user(s: str):
-        if not s:
-            return False
-        if DATE_RE.search(s):
-            return False
-        if re.search(r"[A-Za-zÀ-ú]", s):
-            return len(s) <= 80
-        return False
-
-    for raw in lines:
-        texto = raw.rstrip("\n")
-
-        if "Texto breve" in texto or "---" in texto:
-            continue
-        if "|" not in texto or texto.count("|") < 6:
+    for raw in lines[header_idx + 1:]:
+        if "|" not in raw or "---" in raw:
             continue
 
-        cols = split_cols(texto)
-        while len(cols) < 12:
-            cols.append("")
+        cols = split_cols(raw)
+        if not cols:
+            continue
 
-        reqc = cols[0]
-        dataSolic = cols[1]
-        dataRem = cols[2]
-        mat = cols[3]
-        desc = cols[4]
-        quant = cols[5]
-        um = cols[6]
-        pedido = cols[7]
+        reqc = get_col(cols, col_map, "reqc", "requisição").strip()
+        material = get_col(cols, col_map, "material").strip()
+        descricao = get_col(cols, col_map, "texto breve", "descrição").strip()
+        quantidade = get_col(cols, col_map, "quantidade").strip()
+        usuario = get_col(cols, col_map, "criado/a", "usuário").strip()
+        preco_aval = get_col(cols, col_map, "preço aval").strip()
+        val_total = get_col(cols, col_map, "val.total", "valor total").strip()
+        data_rem = get_col(cols, col_map, "datarem.", "data remessa", "data rem.").strip()
 
-        usuario = ""
-        for i in [8,7,5,9,10]:
-            if len(cols) > i and is_probable_user(cols[i]):
-                usuario = cols[i]
-                break
-        if not usuario:
-            usuario = cols[8]
+        if (
+            not reqc or
+            reqc.lower() in ("reqc", "requisição") or
+            descricao.lower() == "texto breve"
+        ):
+            continue
 
-        d = parse_date_str(dataRem)
+        if usuario.lower() in ("criado/a", "usuario", "usuário"):
+            usuario = ""
+
+        d = parse_date_str(data_rem)
 
         cards.append({
-            "id": str(uuid.uuid4()),
+            "id": f"REQ-{reqc}",
             "tipo": "requisicao",
             "reqc": reqc,
-            "material": mat,
-            "descricao": desc,
-            "quantidade": quant,
-            "um": um,
+            "material": material,
+            "descricao": descricao,
+            "quantidade": quantidade,
             "usuario": usuario,
-            "pedido": pedido,
-            "dataSolic": dataSolic,
-            "dataChegada": dataRem.strip(),
+            "preco_aval": preco_aval,
+            "val_total": val_total,
+            "dataChegada": data_rem,
             "dataChegadaISO": d.isoformat() if d else None,
             "confirmado": False,
             "lista": ""
@@ -185,11 +147,12 @@ def parse_requisicoes_file(path: str):
 
     return cards
 
-def parse_reservas_file(path: str):
+
+def parse_reservas_file(path):
     cards = []
     try:
-        with open(path,"r",encoding="latin-1",errors="ignore") as f:
-            lines=f.readlines()
+        with open(path, "r", encoding="latin-1", errors="ignore") as f:
+            lines = f.readlines()
     except:
         return cards
 
@@ -224,7 +187,7 @@ def parse_reservas_file(path: str):
         d = parse_date_str(dataNec)
 
         cards.append({
-            "id": str(uuid.uuid4()),
+           "id": f"RES-{reserva.strip()}",
             "tipo": "reserva",
             "ordem": ordem,
             "material": material,
@@ -244,44 +207,32 @@ def parse_reservas_file(path: str):
 
 def classify_cards(cards):
     hoje = date.today()
-    em_dia = []
-    entregue = []
-    atraso = []
-
+    em_dia, entregue, atraso = [], [], []
     for c in cards:
         cid = c["id"]
-        c["confirmado"] = CACHE["confirmados"].get(cid)
+        confirmado = CACHE["confirmados"].get(cid)  
+        c["confirmado"] = confirmado
+        c["perguntar"] = False
+
         d = parse_date_str(c["dataChegada"])
-
         if d is None or d > hoje:
-            c["lista"] = "em_dia"
             em_dia.append(c)
-            continue
-
-        if d < hoje:
-            c["lista"] = "entregue"
-            entregue.append(c)
-            continue
-
-        if cid not in CACHE["confirmados"]:
-            c["_prioritario"] = True
-            c["lista"] = "em_dia"
-            em_dia.append(c)
-            continue
-
-        if CACHE["confirmados"][cid]:
+        elif d < hoje:
             entregue.append(c)
         else:
-            atraso.append(c)
+            if confirmado is None:
+                c["perguntar"] = True
+                em_dia.append(c)
 
-    prioridade = [c for c in em_dia if c.get("_prioritario")]
-    resto = [c for c in em_dia if not c.get("_prioritario")]
+            elif confirmado is True:
+                entregue.append(c)
 
-    for c in prioridade:
-        c.pop("_prioritario", None)
+            else:
+                c["perguntar"] = True
+                atraso.append(c)
 
     return {
-        "em_dia": prioridade + resto,
+        "em_dia": em_dia,
         "entregue": entregue,
         "atraso": atraso
     }
@@ -320,12 +271,8 @@ def start_watch():
     if os.path.isdir(PASTA_REQUISICOES):
         obs.schedule(WatchHandler(), PASTA_REQUISICOES)
     obs.start()
-    try:
-        while True:
-            time.sleep(1)
-    except:
-        obs.stop()
-    obs.join()
+    while True:
+        time.sleep(1)
 
 @app.route("/api/confirmar", methods=["POST"])
 def confirmar():
@@ -333,11 +280,14 @@ def confirmar():
     cid = data["id"]
     chegou = data["chegou"]
     tipo = data.get("tipo")
+
     salvar_confirmacao_db(cid, tipo, chegou)
     CACHE["confirmados"][cid] = chegou
-    CACHE["reservas"] = classify_cards(CACHE["reservas"]["em_dia"]+CACHE["reservas"]["entregue"]+CACHE["reservas"]["atraso"])
-    CACHE["requisicoes"] = classify_cards(CACHE["requisicoes"]["em_dia"]+CACHE["requisicoes"]["entregue"]+CACHE["requisicoes"]["atraso"])
+
+    carregar_cache()  # <<< ISSO É CRUCIAL
+
     return jsonify({"ok": True})
+
 
 @app.route("/api/reservas")
 def api_reservas():
@@ -351,7 +301,7 @@ def api_requisicoes():
 def index():
     return send_from_directory("static", "index.html")
 
-if __name__=="__main__":
+if __name__ == "__main__":
     carregar_confirmados_db()
     carregar_cache()
     Thread(target=start_watch, daemon=True).start()

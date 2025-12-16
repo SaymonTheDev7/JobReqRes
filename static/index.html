@@ -193,6 +193,25 @@
       margin-bottom: 25px;
     }
 
+    .btn-chegou, .btn-nao-chegou {
+  flex: 1;
+  padding: 11px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  color: white;
+}
+
+.btn-chegou {
+  background: #16a34a;
+}
+
+.btn-nao-chegou {
+  background: #dc2626;
+}
+
+
     .tab {
       padding: 12px 20px;
       border-radius: 12px;
@@ -492,6 +511,9 @@
 
     function ordenarPorData(lista) {
       return lista.sort((a, b) => {
+        if (a.perguntar && !b.perguntar) return -1;
+        if (!a.perguntar && b.perguntar) return 1;
+
         let da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : new Date(0);
         let db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : new Date(0);
         return db - da;
@@ -499,27 +521,51 @@
     }
 
     function makeCardReserva(item) {
-      return `
+  return `
   <div class="card">
     <div class="title">🧩 ${item.descricao}</div>
-    <div class="row"><span class="icon">📦</span> Reserva: ${item.reserva}</div>
-    <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
-    <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
-    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
+    <div class="row">📦 Reserva: ${item.reserva || ""}</div>
+    <div class="row">🔢 Quantidade: ${item.quantidade}</div>
+    <div class="row">📅 Data de Necessidade: <b>${item.dataChegada}</b></div>
+    ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
   </div>`;
-    }
+}
+
 
     function makeCardCompra(item) {
-      return `
-  <div class="card">
+  const precisaPerguntar = item.perguntar === true;
+
+  return `
+  <div class="card" style="${precisaPerguntar ? 'border-left-color:#dc2626;' : ''}">
     <div class="title">🧩 ${item.descricao}</div>
-    <div class="row"><span class="icon">📦</span> Requisição: ${item.reqc}</div>
-    <div class="row"><span class="icon">🔢</span> Quantidade: ${item.quantidade}</div>
-    <div class="row"><span class="icon">📅</span> Data de Chegada: <b>${item.dataChegada}</b></div>
-    ${item.val_total ? `<div class="row"><span class="icon">💰</span> Valor Total: R$ ${item.val_total}</div>` : ""}
-    ${item.usuario ? `<div class="row"><span class="icon">👤</span> Usuário: ${item.usuario}</div>` : ""}
+    <div class="row">📦 Requisição: ${item.reqc}</div>
+    <div class="row">🔢 Quantidade: ${item.quantidade}</div>
+    <div class="row">📅 Data de Chegada: <b>${item.dataChegada}</b></div>
+    ${item.val_total ? `<div class="row">💰 Valor Total: R$ ${item.val_total}</div>` : ""}
+    ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
+
+    ${precisaPerguntar ? `
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button
+          class="btn-chegou"
+          data-id="${item.id}"
+          data-chegou="true">
+          ✅ Chegou
+        </button>
+
+        <button
+          class="btn-nao-chegou"
+          data-id="${item.id}"
+          data-chegou="false">
+          ❌ Não chegou
+        </button>
+      </div>
+    ` : ""}
   </div>`;
-    }
+}
+
+
+
 
     function ativarScroll(div, lista, tipo) {
       div.innerHTML = "";
@@ -542,6 +588,47 @@
         }
       };
     }
+
+    async function perguntarChegada(item) {
+      const ok = confirm(`A requisição "${item.descricao}" chegou?`);
+      await fetch("/api/confirmar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: item.id,
+          tipo: item.tipo,
+          chegou: ok
+        })
+      });
+      carregar();
+    }
+
+    async function responderChegada(id, chegou) {
+  await fetch("/api/confirmar", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      id: id,
+      tipo: "requisicao",
+      chegou: chegou
+    })
+  });
+  carregar();
+}
+
+
+    document.addEventListener("click", e => {
+  const btn = e.target;
+
+  if (btn.dataset && btn.dataset.id) {
+    const id = btn.dataset.id;
+    const chegou = btn.dataset.chegou === "true";
+    responderChegada(id, chegou);
+  }
+});
+
+
+
 
     async function carregar() {
       const resv = await fetch("/api/reservas").then(r => r.json());
@@ -568,6 +655,12 @@
     }
 
     carregar();
+
+setInterval(() => {
+  carregar();
+}, 5000);
+
+
   </script>
 
 </body>
