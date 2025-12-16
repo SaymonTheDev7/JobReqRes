@@ -522,15 +522,27 @@
     }
 
     function makeCardReserva(item) {
-      return `
-  <div class="card">
-    <div class="title">🧩 ${item.descricao}</div>
-    <div class="row">📦 Reserva: ${item.reserva || ""}</div>
-    <div class="row">🔢 Quantidade: ${item.quantidade}</div>
-    <div class="row">📅 Data de Necessidade: <b>${item.dataChegada}</b></div>
-    ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
-  </div>`;
-    }
+  const precisaPerguntar = item.perguntar === true; // em dia ou atraso
+
+  return `
+    <div class="card" style="${precisaPerguntar ? 'border-left-color:#dc2626;' : ''}">
+      <div class="title">🧩 ${item.descricao}</div>
+      <div class="row">📦 Reserva: ${item.reserva || ""}</div>
+      <div class="row">🔢 Quantidade: ${item.quantidade}</div>
+      <div class="row">📅 Data de Necessidade: <b>${item.dataChegada}</b></div>
+      ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
+      
+      ${precisaPerguntar ? `
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button class="btn-chegou" data-id="${item.id}" data-chegou="true">
+            ✅ Chegou
+          </button>
+        </div>
+      ` : ""}
+    </div>
+  `;
+}
+
 
 
     function makeCardCompra(item) {

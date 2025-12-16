@@ -243,37 +243,46 @@ def parse_reservas_file(path):
 
 def classify_cards(cards):
     hoje = date.today()
+    data_corte = date(2025, 12, 16)
+
     em_dia = []
     entregue = []
     atraso = []
 
     for c in cards:
         cid = c["id"]
-        confirmado = CACHE["confirmados"].get(cid)
+        confirmado = CACHE["confirmados"].get(cid, False)
         c["confirmado"] = confirmado
+
         d = parse_date_str(c.get("dataChegada"))
 
-        if confirmado is True:
+        # 1) Confirmado → entregue
+        if confirmado:
             c["perguntar"] = False
             entregue.append(c)
             continue
 
-        if d and d < hoje and not confirmado:
-            c["perguntar"] = True
-            atraso.append(c)
+        # 2) Data antes da data_corte → entregue
+        if d and d < data_corte:
+            c["perguntar"] = False
+            entregue.append(c)
             continue
 
+        # 3) Sem data → em dia, perguntar
         if d is None:
             c["perguntar"] = True
             em_dia.append(c)
             continue
 
-        if d >= hoje:
-            c["perguntar"] = True
-            em_dia.append(c)
-        else:
+        # 4) Data passada (mas depois da data_corte) → atraso, perguntar
+        if d < hoje:
             c["perguntar"] = True
             atraso.append(c)
+            continue
+
+        # 5) Hoje ou futuro → em dia, perguntar
+        c["perguntar"] = True
+        em_dia.append(c)
 
     return {
         "em_dia": em_dia,
