@@ -193,23 +193,24 @@
       margin-bottom: 25px;
     }
 
-    .btn-chegou, .btn-nao-chegou {
-  flex: 1;
-  padding: 11px;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  cursor: pointer;
-  color: white;
-}
+    .btn-chegou,
+    .btn-nao-chegou {
+      flex: 1;
+      padding: 11px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      color: white;
+    }
 
-.btn-chegou {
-  background: #16a34a;
-}
+    .btn-chegou {
+      background: #16a34a;
+    }
 
-.btn-nao-chegou {
-  background: #dc2626;
-}
+    .btn-nao-chegou {
+      background: #dc2626;
+    }
 
 
     .tab {
@@ -521,7 +522,7 @@
     }
 
     function makeCardReserva(item) {
-  return `
+      return `
   <div class="card">
     <div class="title">🧩 ${item.descricao}</div>
     <div class="row">📦 Reserva: ${item.reserva || ""}</div>
@@ -529,18 +530,29 @@
     <div class="row">📅 Data de Necessidade: <b>${item.dataChegada}</b></div>
     ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
   </div>`;
-}
+    }
 
 
     function makeCardCompra(item) {
-  const precisaPerguntar = item.perguntar === true;
+      const precisaPerguntar = item.perguntar === true;
 
-  return `
+      return `
   <div class="card" style="${precisaPerguntar ? 'border-left-color:#dc2626;' : ''}">
     <div class="title">🧩 ${item.descricao}</div>
+
     <div class="row">📦 Requisição: ${item.reqc}</div>
     <div class="row">🔢 Quantidade: ${item.quantidade}</div>
     <div class="row">📅 Data de Chegada: <b>${item.dataChegada}</b></div>
+
+    <div class="row">
+      🧾 Aprovado pelo Gestor:
+      <b style="color:${item.aprovadoGestor ? '#16a34a' : '#dc2626'}">
+        ${item.aprovadoGestor ? 'Sim' : 'Não'}
+      </b>
+    </div>
+
+    
+
     ${item.val_total ? `<div class="row">💰 Valor Total: R$ ${item.val_total}</div>` : ""}
     ${item.usuario ? `<div class="row">👤 Usuário: ${item.usuario}</div>` : ""}
 
@@ -562,7 +574,8 @@
       </div>
     ` : ""}
   </div>`;
-}
+    }
+
 
 
 
@@ -604,28 +617,28 @@
     }
 
     async function responderChegada(id, chegou) {
-  await fetch("/api/confirmar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      id: id,
-      tipo: "requisicao",
-      chegou: chegou
-    })
-  });
-  carregar();
-}
+      await fetch("/api/confirmar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: id,
+          tipo: "requisicao",
+          chegou: chegou
+        })
+      });
+      carregar();
+    }
 
 
     document.addEventListener("click", e => {
-  const btn = e.target;
+      const btn = e.target;
 
-  if (btn.dataset && btn.dataset.id) {
-    const id = btn.dataset.id;
-    const chegou = btn.dataset.chegou === "true";
-    responderChegada(id, chegou);
-  }
-});
+      if (btn.dataset && btn.dataset.id) {
+        const id = btn.dataset.id;
+        const chegou = btn.dataset.chegou === "true";
+        responderChegada(id, chegou);
+      }
+    });
 
 
 
@@ -656,9 +669,9 @@
 
     carregar();
 
-setInterval(() => {
-  carregar();
-}, 5000);
+    setInterval(() => {
+      carregar();
+    }, 5000);
 
 
   </script>

@@ -116,6 +116,14 @@ def parse_requisicoes_file(path):
         preco_aval = get_col(cols, col_map, "preço aval").strip()
         val_total = get_col(cols, col_map, "val.total", "valor total").strip()
         data_rem = get_col(cols, col_map, "datarem.", "data remessa", "data rem.").strip()
+        data_liber = get_col(
+            cols,
+            col_map,
+            "dat.liber.",
+            "dat.liber",
+            "data liberação",
+            "data liber."
+        ).strip()
 
         if (
             not reqc or
@@ -128,6 +136,7 @@ def parse_requisicoes_file(path):
             usuario = ""
 
         d = parse_date_str(data_rem)
+        aprovado_gestor = bool(data_liber)
 
         cards.append({
             "id": f"REQ-{reqc}",
@@ -141,6 +150,8 @@ def parse_requisicoes_file(path):
             "val_total": val_total,
             "dataChegada": data_rem,
             "dataChegadaISO": d.isoformat() if d else None,
+            "aprovadoGestor": aprovado_gestor,
+            "dataLiberacao": data_liber if data_liber else None,
             "confirmado": False,
             "lista": ""
         })
