@@ -1,7 +1,6 @@
 import os
 import re
 import time
-import uuid
 from datetime import datetime, date
 from threading import Thread
 from flask import Flask, jsonify, send_from_directory, request
@@ -13,7 +12,11 @@ from sqlalchemy import func
 
 app = Flask(__name__, static_folder="static", static_url_path="/static")
 
-DB_FILE = "app.db"
+BASE_DIR = os.getenv("APPDATA") or os.path.dirname(os.path.abspath(__file__))
+DB_DIR = os.path.join(BASE_DIR, "SAPViewer")
+os.makedirs(DB_DIR, exist_ok=True)
+
+DB_FILE = os.path.join(DB_DIR, "app.db")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_FILE}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -39,6 +42,7 @@ CACHE = {
     "requisicoes": {"em_dia": [], "entregue": [], "atraso": []},
     "confirmados": {}
 }
+
 
 def carregar_confirmados_db():
     CACHE["confirmados"].clear()
@@ -255,32 +259,28 @@ def classify_cards(cards):
         c["confirmado"] = confirmado
 
         d = parse_date_str(c.get("dataChegada"))
+        c["dataChegadaISO"] = d.isoformat() if d else None
 
-        # 1) Confirmado → entregue
         if confirmado:
             c["perguntar"] = False
             entregue.append(c)
             continue
 
-        # 2) Data antes da data_corte → entregue
         if d and d < data_corte:
             c["perguntar"] = False
             entregue.append(c)
             continue
 
-        # 3) Sem data → em dia, perguntar
         if d is None:
             c["perguntar"] = True
             em_dia.append(c)
             continue
 
-        # 4) Data passada (mas depois da data_corte) → atraso, perguntar
         if d < hoje:
             c["perguntar"] = True
             atraso.append(c)
             continue
 
-        # 5) Hoje ou futuro → em dia, perguntar
         c["perguntar"] = True
         em_dia.append(c)
 
@@ -289,6 +289,7 @@ def classify_cards(cards):
         "entregue": entregue,
         "atraso": atraso
     }
+
 
 
 

@@ -510,21 +510,37 @@
       );
     }
 
-    function ordenarPorData(lista) {
+    function ordenarEmDia(lista) {
       return lista.sort((a, b) => {
-        if (a.perguntar && !b.perguntar) return -1;
-        if (!a.perguntar && b.perguntar) return 1;
+        const da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : null;
+        const db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : null;
 
-        let da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : new Date(0);
-        let db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : new Date(0);
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+
         return da - db;
       });
     }
 
-    function makeCardReserva(item) {
-  const precisaPerguntar = item.perguntar === true; // em dia ou atraso
+    function ordenarEntregue(lista) {
+      return lista.sort((a, b) => {
+        const da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : null;
+        const db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : null;
 
-  return `
+        if (!da && !db) return 0;
+        if (!da) return 1;
+        if (!db) return -1;
+
+        return db - da;
+      });
+    }
+
+
+    function makeCardReserva(item) {
+      const precisaPerguntar = item.perguntar === true; // em dia ou atraso
+
+      return `
     <div class="card" style="${precisaPerguntar ? 'border-left-color:#dc2626;' : ''}">
       <div class="title">🧩 ${item.descricao}</div>
       <div class="row">📦 Reserva: ${item.reserva || ""}</div>
@@ -541,7 +557,7 @@
       ` : ""}
     </div>
   `;
-}
+    }
 
 
 
@@ -668,13 +684,24 @@
         `<option value="">Todos</option>` +
         [...usuarios].sort().map(u => `<option value="${u}">${u}</option>`).join("");
 
-      ativarScroll($("#res-em-dia"), ordenarPorData(filtrarPesquisa(filtrarUsuario(resv.em_dia))), "reserva");
-      ativarScroll($("#res-entregue"), ordenarPorData(filtrarPesquisa(filtrarUsuario(resv.entregue))), "reserva");
-      ativarScroll($("#res-atraso"), ordenarPorData(filtrarPesquisa(filtrarUsuario(resv.atraso))), "reserva");
+      ativarScroll($("#res-em-dia"),
+        ordenarEmDia(filtrarPesquisa(filtrarUsuario(resv.em_dia))), "reserva");
 
-      ativarScroll($("#req-em-dia"), ordenarPorData(filtrarPesquisa(filtrarUsuario(reqc.em_dia))), "compra");
-      ativarScroll($("#req-entregue"), ordenarPorData(filtrarPesquisa(filtrarUsuario(reqc.entregue))), "compra");
-      ativarScroll($("#req-atraso"), ordenarPorData(filtrarPesquisa(filtrarUsuario(reqc.atraso))), "compra");
+      ativarScroll($("#res-entregue"),
+        ordenarEntregue(filtrarPesquisa(filtrarUsuario(resv.entregue))), "reserva");
+
+      ativarScroll($("#res-atraso"),
+        ordenarEmDia(filtrarPesquisa(filtrarUsuario(resv.atraso))), "reserva");
+
+      ativarScroll($("#req-em-dia"),
+        ordenarEmDia(filtrarPesquisa(filtrarUsuario(reqc.em_dia))), "compra");
+
+      ativarScroll($("#req-entregue"),
+        ordenarEntregue(filtrarPesquisa(filtrarUsuario(reqc.entregue))), "compra");
+
+      ativarScroll($("#req-atraso"),
+        ordenarEmDia(filtrarPesquisa(filtrarUsuario(reqc.atraso))), "compra");
+
     }
 
     carregar();
