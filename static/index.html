@@ -517,7 +517,7 @@
 
         let da = a.dataChegadaISO ? new Date(a.dataChegadaISO) : new Date(0);
         let db = b.dataChegadaISO ? new Date(b.dataChegadaISO) : new Date(0);
-        return db - da;
+        return da - db;
       });
     }
 
